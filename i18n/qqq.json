@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Cicalese"
+		]
+	},
+	"openidconnect-desc": "{{desc|name=Pluggable Auth|url=http://www.mediawiki.org/wiki/Extension/PluggableAuth}}",
+	"selectopenidconnectissuer": "Title of OpenID Connect issuer selection page"
+}
