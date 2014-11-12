@@ -21,13 +21,11 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+// @codingStandardsIgnoreFile
 
 $specialPageAliases = array();
 
-/** English */
+/** English (English) */
 $specialPageAliases['en'] = array(
-	'SelectOpenIDConnectIssuer' => array(
-		'SelectOpenIDConnectIssuer',
-		'Select OpenID Connect Issuer'
-	),
+	'SelectOpenIDConnectIssuer' => array( 'SelectOpenIDConnectIssuer', 'Select OpenID Connect Issuer' ),
 );
