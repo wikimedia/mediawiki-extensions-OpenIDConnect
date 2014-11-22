@@ -30,6 +30,11 @@ $specialPageAliases['en'] = array(
 	'SelectOpenIDConnectIssuer' => array( 'SelectOpenIDConnectIssuer', 'Select OpenID Connect Issuer' ),
 );
 
+/** German (Deutsch) */
+$specialPageAliases['de'] = array(
+	'SelectOpenIDConnectIssuer' => array( 'OpenID-Verbindungsherausgeber_auswählen' ),
+);
+
 /** Simplified Chinese (中文（简体）‎) */
 $specialPageAliases['zh-hans'] = array(
 	'SelectOpenIDConnectIssuer' => array( '选择OpenID连接发行商' ),
