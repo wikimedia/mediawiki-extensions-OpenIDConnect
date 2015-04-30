@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2014 The MITRE Corporation
+ * Copyright (c) 2015 The MITRE Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ if ( array_key_exists( 'PluggableAuth_Class', $GLOBALS ) ) {
 $GLOBALS['wgExtensionCredits']['other'][] = array (
 	'path' => __FILE__,
 	'name' => 'OpenID Connect',
-	'version' => '1.0',
+	'version' => '1.1',
 	'author' => array(
 		'[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]'
 	),
@@ -63,4 +63,3 @@ $GLOBALS['wgWhitelistRead'][] = "Special:SelectOpenIDConnectIssuer";
 
 $GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] =
 	'OpenIDConnect::loadExtensionSchemaUpdates';
-

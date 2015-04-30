@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2014 The MITRE Corporation
+ * Copyright (c) 2015 The MITRE Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -57,10 +57,11 @@ class OpenIDConnect extends PluggableAuth {
 
 				if ( isset( $GLOBALS['OpenIDConnect_Config'][$iss] ) ) {
 
-					$values = $GLOBALS['OpenIDConnect_Config'][$iss];
+					$config = $GLOBALS['OpenIDConnect_Config'][$iss];
 
-					if ( !isset( $values['clientID'] ) ||
-						!isset( $values['clientsecret'] ) ) {
+					if ( !isset( $config['clientID'] ) ||
+						!isset( $config['clientsecret'] ) ) {
+						wfDebug("OpenID Connect: clientID or clientsecret not set for " . $iss);
 						$params = array(
 							"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
 							"query" => urlencode( $_SERVER['QUERY_STRING'] )
@@ -69,9 +70,6 @@ class OpenIDConnect extends PluggableAuth {
 							$params );
 						return false;
 					}
-
-					$clientID = $values['clientID'];
-					$clientsecret = $values['clientsecret'];
 
 				}
 
@@ -93,14 +91,13 @@ class OpenIDConnect extends PluggableAuth {
 					$iss = $iss[0];
 
 					$values = array_values( $GLOBALS['OpenIDConnect_Config'] );
-					$values = $values[0];
+					$config = $values[0];
 
-					if ( !isset( $values['clientID'] ) ||
-						!isset( $values['clientsecret'] ) ) {
+					if ( !isset( $config['clientID'] ) ||
+						!isset( $config['clientsecret'] ) ) {
+						wfDebug("OpenID Connect: clientID or clientsecret not set for " . $iss);
 						return false;
 					}
-					$clientID = $values['clientID'];
-					$clientsecret = $values['clientsecret'];
 
 				} else {
 
@@ -115,13 +112,30 @@ class OpenIDConnect extends PluggableAuth {
 				}
 			}
 
+			$clientID = $config['clientID'];
+			$clientsecret = $config['clientsecret'];
+
 			$oidc = new OpenIDConnectClient( $iss, $clientID, $clientsecret );
 			if ( isset( $_REQUEST['forcelogin'] ) ) {
 				$oidc->addAuthParam( array( 'prompt' => 'login' ) );
 			}
+			if ( isset( $config['scope'] ) ) {
+				$scope = $config['scope'];
+				if ( is_array( $scope ) ) {
+					foreach ( $scope as $s ) {
+						$oidc->addScope( $s );
+					}
+				} else {
+					$oidc->addScope( $scope );
+				}
+			}
+			if ( isset( $config['proxy'] ) ) {
+				$oidc->setHttpProxy( $config['proxy'] );
+			}
 			if ( $oidc->authenticate() ) {
 
-				$username = $oidc->requestUserInfo( "preferred_username" );
+				$preferred_username =
+					$oidc->requestUserInfo( "preferred_username" );
 				$realname = $oidc->requestUserInfo( "name" );
 				$email = $oidc->requestUserInfo( "email" );
 				$this->subject = $oidc->requestUserInfo( 'sub' );
@@ -134,21 +148,28 @@ class OpenIDConnect extends PluggableAuth {
 
 				if ( isset( $GLOBALS['OpenIDConnect_MigrateUsers'] ) &&
 					$GLOBALS['OpenIDConnect_MigrateUsers'] ) {
-					$id = $this->getMigratedId( $username );
+					$id = $this->getMigratedId( $preferred_username );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
-						wfDebug( "Migrated user: " . $username );
+						wfDebug( "Migrated user: " . $preferred_username );
 						return true;
 					}
 				}
 
-				$username = self::getAvailableUsername( $username );
+				$username = self::getAvailableUsername( $preferred_username,
+					$realname, $email, $this->subject );
+
 				return true;
 
 			} else {
+				session_destroy();
+				unset( $_SESSION );
 				return false;
 			}
 		} catch ( Exception $e ) {
+			wfDebug( $e->__toString() . PHP_EOL );
+			session_destroy();
+			unset( $_SESSION );
 			return false;
 		}
 	}
@@ -203,6 +224,9 @@ class OpenIDConnect extends PluggableAuth {
 
 	private static function getMigratedId( $username ) {
 		$nt = Title::makeTitleSafe( NS_USER, $username );
+		if ( $nt === null ) {
+			return null;
+		}
 		$username = $nt->getText();
 		$dbr = wfGetDB( DB_SLAVE );
 		$row = $dbr->selectRow( 'user',
@@ -220,7 +244,22 @@ class OpenIDConnect extends PluggableAuth {
 		}
 	}
 
-	private static function getAvailableUsername( $name ) {
+	private static function getAvailableUsername( $preferred_username,
+		$realname, $email, $subject ) {
+		if ( strlen( $preferred_username ) > 0 ) {
+			$name = $preferred_username;
+		} elseif ( strlen( $email ) > 0 ) {
+			$pos = strpos ( $email, '@' );
+			if ( $pos !== false && $pos > 0 ) {
+				$name = substr( $email, 0, $pos );
+			} else {
+				$name = $email;
+			}
+		} elseif ( strlen ( $realname ) > 0 ) {
+			$name = $realname;
+		} else {
+			$name = $subject;
+		}
 		$nt = Title::makeTitleSafe( NS_USER, $name );
 		if ( is_null( $nt ) ) {
 			$name = "User";
