@@ -248,25 +248,28 @@ class OpenIDConnect extends PluggableAuth {
 		$realname, $email, $subject ) {
 		if ( strlen( $preferred_username ) > 0 ) {
 			$name = $preferred_username;
-		} elseif ( strlen( $email ) > 0 ) {
+		} elseif ( strlen ( $realname ) > 0 &&
+			isset( $GLOBALS['OpenIDConnect_UseRealNameAsUserName'] ) &&
+			$GLOBALS['OpenIDConnect_UseRealNameAsUserName'] === true ) {
+			$name = $realname;
+		} elseif ( strlen( $email ) > 0 &&
+			isset( $GLOBALS['OpenIDConnect_UseEmailNameAsUserName'] ) &&
+			$GLOBALS['OpenIDConnect_UseEmailNameAsUserName'] === true ) {
 			$pos = strpos ( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
 				$name = substr( $email, 0, $pos );
 			} else {
 				$name = $email;
 			}
-		} elseif ( strlen ( $realname ) > 0 ) {
-			$name = $realname;
-		} else {
-			$name = $subject;
 		}
 		$nt = Title::makeTitleSafe( NS_USER, $name );
 		if ( is_null( $nt ) ) {
 			$name = "User";
 		} elseif ( is_null( User::idFromName( $name ) ) ) {
 			return $nt->getText();
+		} else {
+			$name = $nt->getText();
 		}
-		$name = $nt->getText();
 		$count = 1;
 		while ( !is_null( User::idFromName( $name . $count ) ) ) {
 			$count++;
