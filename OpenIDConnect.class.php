@@ -119,6 +119,9 @@ class OpenIDConnect extends PluggableAuth {
 			if ( isset( $_REQUEST['forcelogin'] ) ) {
 				$oidc->addAuthParam( array( 'prompt' => 'login' ) );
 			}
+			if ( isset( $config['hd'] ) ) {
+				$oidc->addAuthParam( array( 'hd' => $config['hd'] ) );
+			}
 			if ( isset( $config['scope'] ) ) {
 				$scope = $config['scope'];
 				if ( is_array( $scope ) ) {
