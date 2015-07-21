@@ -33,7 +33,7 @@ if ( array_key_exists( 'PluggableAuth_Class', $GLOBALS ) ) {
 $GLOBALS['wgExtensionCredits']['other'][] = array (
 	'path' => __FILE__,
 	'name' => 'OpenID Connect',
-	'version' => '1.1',
+	'version' => '1.2',
 	'author' => array(
 		'[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]'
 	),
@@ -47,7 +47,7 @@ $GLOBALS['PluggableAuth_Class'] = 'OpenIDConnect';
 $GLOBALS['wgAutoloadClasses']['OpenIDConnect'] =
 	__DIR__ . '/OpenIDConnect.class.php';
 $GLOBALS['wgAutoloadClasses']['OpenIDConnectClient'] =
-	__DIR__ . '/OpenID-Connect-PHP/OpenIDConnectClient.php5';
+	__DIR__ . '/OpenID-Connect-PHP/OpenIDConnectClient.php';
 
 $GLOBALS['wgMessagesDirs']['OpenIDConnect'] = __DIR__ . '/i18n';
 $GLOBALS['wgExtensionMessagesFiles']['OpenIDConnect'] =

@@ -1,1 +1,1 @@
-ALTER TABLE user ADD issuer TINYBLOB;
+ALTER TABLE /*_*/user ADD issuer TINYBLOB;

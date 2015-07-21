@@ -1,1 +1,1 @@
-ALTER TABLE user ADD subject TINYBLOB;
+ALTER TABLE /*_*/user ADD subject TINYBLOB;

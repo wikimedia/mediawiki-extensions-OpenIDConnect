@@ -38,7 +38,7 @@ class OpenIDConnect extends PluggableAuth {
 	public function authenticate( &$id, &$username, &$realname, &$email ) {
 
 		if ( !array_key_exists( 'SERVER_PORT', $_SERVER ) ) {
-			wfDebug( "in authenticat, server port not set" . PHP_EOL );
+			wfDebug( "in authenticate, server port not set" . PHP_EOL );
 			return false;
 		}
 
@@ -118,6 +118,10 @@ class OpenIDConnect extends PluggableAuth {
 			$oidc = new OpenIDConnectClient( $iss, $clientID, $clientsecret );
 			if ( isset( $_REQUEST['forcelogin'] ) ) {
 				$oidc->addAuthParam( array( 'prompt' => 'login' ) );
+			}
+			if ( isset( $config['authparam'] ) &&
+				is_array( $config['authparam'] ) ) {
+				$oidc->addAuthParam( $config['authparam'] );
 			}
 			if ( isset( $config['scope'] ) ) {
 				$scope = $config['scope'];
