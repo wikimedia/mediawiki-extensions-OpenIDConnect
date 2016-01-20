@@ -22,9 +22,11 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-if ( !class_exists( 'PluggableAuth' ) ) {
-	die( '<b>Error:</b> This extension requires the PluggableAuth extension to be included first' );
-}
+$wgExtensionFunctions[] = function () {
+	if ( !class_exists( 'PluggableAuth' ) ) {
+		die( '<b>Error:</b> This extension requires the PluggableAuth extension to be included first' );
+	}
+};
 
 if ( array_key_exists( 'PluggableAuth_Class', $GLOBALS ) ) {
 	die( '<b>Error:</b> A value for $PluggableAuth_Class has already been set.' );
