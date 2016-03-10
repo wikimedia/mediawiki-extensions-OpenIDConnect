@@ -4,5 +4,6 @@
 			"Red Winged Duck"
 		]
 	},
-	"openidconnect-desc": "Забясьпечвае аўтэнтыфікацыю з дапамогай OpenID Connect у спалучэньні з PluggableAuth"
+	"openidconnect-desc": "Забясьпечвае аўтэнтыфікацыю з дапамогай OpenID Connect у спалучэньні з PluggableAuth",
+	"selectopenidconnectissuer": "Абярыце крыніцу аўтэнтыфікацыі"
 }
