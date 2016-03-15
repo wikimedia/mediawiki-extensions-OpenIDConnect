@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "2.3",
+	"version": "3.0",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -27,7 +27,8 @@
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
 	},
 	"config": {
-		"OpenIDConnect_MigrateUsers": false,
+		"OpenIDConnect_MigrateUsersByEmail": false,
+		"OpenIDConnect_MigrateUsersByUserName": false,
 		"OpenIDConnect_ForceLogout": false,
 		"OpenIDConnect_UseRealNameAsUserName": false,
 		"OpenIDConnect_UseEmailNameAsUserName": false,
