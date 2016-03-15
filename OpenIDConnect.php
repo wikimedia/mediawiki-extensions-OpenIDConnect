@@ -166,11 +166,18 @@ class OpenIDConnect extends PluggableAuth {
 					return true;
 				}
 
-				if ( $GLOBALS['wgOpenIDConnect_MigrateUsers'] === true ) {
-					$id = $this->getMigratedId( $preferred_username );
+				if( $GLOBALS['wgOpenIDConnect_MigrateUsersByEmail'] === true ) {
+					list ( $id, $username ) = $this->getMigratedIdByEmail( $email );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
-						wfDebug( "Migrated user: " . $preferred_username );
+						wfDebug( "Migrated user " . $username . " by email: " . $email );
+						return true;
+					}
+				} elseif ( $GLOBALS['wgOpenIDConnect_MigrateUsersByUserName'] === true ) {
+					$id = $this->getMigratedIdByUserName( $preferred_username );
+					if ( !is_null( $id ) ) {
+						$this->saveExtraAttributes( $id );
+						wfDebug( "Migrated user by username: " . $preferred_username );
 						$username = $preferred_username;
 						return true;
 					}
@@ -257,9 +264,9 @@ class OpenIDConnect extends PluggableAuth {
 		}
 	}
 
-	private static function getMigratedId( $username ) {
+	private static function getMigratedIdByUserName( $username ) {
 		$nt = Title::makeTitleSafe( NS_USER, $username );
-		if ( $nt === null ) {
+		if ( is_null( $nt ) ) {
 			return null;
 		}
 		$username = $nt->getText();
@@ -270,12 +277,40 @@ class OpenIDConnect extends PluggableAuth {
 				'user_name' => $username,
 				'subject' => null,
 				'issuer' => null
-			], __METHOD__
+			],
+			__METHOD__
 		);
 		if ( $row === false ) {
 			return null;
 		} else {
 			return $row->user_id;
+		}
+	}
+
+	private static function getMigratedIdByEmail( $email ) {
+		wfDebug( "Matching user to email " . $email );
+		$dbr = wfGetDB( DB_SLAVE );
+		$row = $dbr->selectRow( 'user',
+			[
+				'user_id',
+				'user_name'
+			],
+			[
+				'user_email' => $email,
+				'subject' => null,
+				'issuer' => null
+			],
+			__METHOD__,
+			[
+				// if multiple matching accounts, use the oldest one
+				'ORDER BY' => 'user_registration',
+				'LIMIT' => 1
+			]
+		);
+		if ( $row === false ) {
+			return [ null, null ];
+		} else {
+			return [ $row->user_id, $row->user_name ];
 		}
 	}
 
@@ -354,4 +389,3 @@ class OpenIDConnect extends PluggableAuth {
 		$GLOBALS['wgWhitelistRead'][] = 'Special:SelectOpenIDConnectIssuer';
 	}
 }
-
