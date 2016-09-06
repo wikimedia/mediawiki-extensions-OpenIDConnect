@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2014 The MITRE Corporation
+ * Copyright (c) 2015-2016 The MITRE Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 
 	function execute( $param ) {
 
-		if ( isset( $GLOBALS['OpenIDConnect_Config'] ) &&
+		if ( isset( $GLOBALS['wgOpenIDConnect_Config'] ) &&
 			isset( $_REQUEST['uri'] ) && isset( $_REQUEST['query'] ) ) {
 
 			if ( isset( $_REQUEST['iss'] ) ) {
@@ -62,7 +62,7 @@ class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 				$html .= Html::openElement( 'tr' );
 				$GLOBALS['wgOut']->AddHtml( $html );
 
-				foreach ( $GLOBALS['OpenIDConnect_Config'] as $iss => $data ) {
+				foreach ( $GLOBALS['wgOpenIDConnect_Config'] as $iss => $data ) {
 					$html = Html::openElement( 'td' );
 					$html .= Html::openElement( 'table', array(
 						'style' => 'padding:20px;' )
