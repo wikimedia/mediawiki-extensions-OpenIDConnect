@@ -1,0 +1,36 @@
+{
+	"name": "OpenID Connect",
+	"version": "2.0",
+	"author": [
+		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:OpenID_Connect",
+	"descriptionmsg": "openidconnect-desc",
+	"type": "other",
+	"SpecialPages": {
+		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer"
+	},
+	"MessagesDirs": {
+		"OpenIDConnect": [
+			"i18n"
+		]
+	},
+	"ExtensionMessagesFiles": {
+		"SelectOpenIDConnectIssuerAlias": "SelectOpenIDConnectIssuer.alias.php"
+	},
+	"AutoloadClasses": {
+		"OpenIDConnect": "OpenIDConnect.php",
+		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
+	},
+	"Hooks": {
+		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
+	},
+	"config": {
+		"PluggableAuth_Class": "OpenIDConnect",
+		"WhitelistRead": [
+			"Special:SelectOpenIDConnectIssuer"
+		]
+	},
+	"load_composer_autoloader": true,
+	"manifest_version": 1
+}
