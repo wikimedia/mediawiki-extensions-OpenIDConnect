@@ -28,6 +28,8 @@ $wgExtensionFunctions[] = function () {
 	}
 };
 
+use \MediaWiki\Session\SessionManager;
+
 class OpenIDConnect extends PluggableAuth {
 
 	private $subject;
@@ -48,17 +50,21 @@ class OpenIDConnect extends PluggableAuth {
 			return false;
 		}
 
+		if ( !isset( $GLOBALS['wgOpenIDConnect_Config'] ) ) {
+			wfDebug( "wgOpenIDConnect_Config not set" . PHP_EOL );
+			return false;
+		}
+
 		try {
 
-			if ( session_id() == '' ) {
-				wfSetupSession();
-			}
+			$session = SessionManager::getGlobalSession();
 
-			if ( isset( $_SESSION['iss'] ) ) {
-				$iss = $_SESSION['iss'];
+			$iss = $session->get( 'iss' );
+
+			if ( !is_null( $iss ) ) {
 
 				if ( isset( $_REQUEST['code'] ) && isset( $_REQUEST['status'] ) ) {
-					unset( $_SESSION['iss'] );
+					$session->remove( 'iss' );
 				}
 
 				if ( isset( $GLOBALS['wgOpenIDConnect_Config'][$iss] ) ) {
@@ -73,17 +79,17 @@ class OpenIDConnect extends PluggableAuth {
 							"query" => urlencode( $_SERVER['QUERY_STRING'] )
 						);
 						self::redirect( "Special:SelectOpenIDConnectIssuer",
-							$params );
+							$params, true );
 						return false;
 					}
 
+				} else {
+					wfDebug( 'Issuer ' . $iss .
+						' does not exist in wgOpeIDConnect_Config'. PHP_EOL );
+					return false;
 				}
 
 			} else {
-
-				if ( !isset( $GLOBALS['wgOpenIDConnect_Config'] ) ) {
-					return false;
-				}
 
 				$iss_count = count( $GLOBALS['wgOpenIDConnect_Config'] );
 
@@ -101,7 +107,8 @@ class OpenIDConnect extends PluggableAuth {
 
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
-						wfDebug("OpenID Connect: clientID or clientsecret not set for " . $iss);
+						wfDebug("OpenID Connect: clientID or clientsecret not set for " .
+							$iss);
 						return false;
 					}
 
@@ -111,10 +118,9 @@ class OpenIDConnect extends PluggableAuth {
 						"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
 						"query" => urlencode( $_SERVER['QUERY_STRING'] )
 					);
-					$this->redirect( "Special:SelectOpenIDConnectIssuer",
-						$params );
+					self::redirect( "Special:SelectOpenIDConnectIssuer",
+						$params, true );
 					return false;
-
 				}
 			}
 
@@ -151,17 +157,17 @@ class OpenIDConnect extends PluggableAuth {
 				$this->subject = $oidc->requestUserInfo( 'sub' );
 				$this->issuer = $oidc->getProviderURL();
 
-				$id = $this->getId( $this->subject, $this->issuer );
-				if ( !is_null( $id ) ) {
+				$username = $this->getName( $this->subject, $this->issuer );
+				if ( !is_null( $username ) ) {
 					return true;
 				}
 
-				if ( isset( $GLOBALS['wgOpenIDConnect_MigrateUsers'] ) &&
-					$GLOBALS['wgOpenIDConnect_MigrateUsers'] ) {
+				if ( $GLOBALS['wgOpenIDConnect_MigrateUsers'] === true ) {
 					$id = $this->getMigratedId( $preferred_username );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
 						wfDebug( "Migrated user: " . $preferred_username );
+						$username = $preferred_username;
 						return true;
 					}
 				}
@@ -172,14 +178,12 @@ class OpenIDConnect extends PluggableAuth {
 				return true;
 
 			} else {
-				session_destroy();
-				unset( $_SESSION );
+				$session->clear();
 				return false;
 			}
 		} catch ( Exception $e ) {
 			wfDebug( $e->__toString() . PHP_EOL );
-			session_destroy();
-			unset( $_SESSION );
+			$session->clear();
 			return false;
 		}
 	}
@@ -190,8 +194,7 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param User &$user
 	 */
 	public function deauthenticate( User &$user ) {
-		if ( isset( $GLOBALS['wgOpenIDConnect_ForceLogout'] ) &&
-			$GLOBALS['wgOpenIDConnect_ForceLogout'] ) {
+		if ( $GLOBALS['wgOpenIDConnect_ForceLogout'] === true ) {
 			$returnto = 'Special:UserLogin';
 			$params = array( 'forcelogin' => 'true' );
 			self::redirect( $returnto, $params );
@@ -216,10 +219,10 @@ class OpenIDConnect extends PluggableAuth {
 		);
 	}
 
-	private static function getId( $subject, $issuer ) {
+	private static function getName( $subject, $issuer ) {
 		$dbr = wfGetDB( DB_SLAVE );
 		$row = $dbr->selectRow( 'user',
-			array( 'user_id' ),
+			array( 'user_name' ),
 			array(
 				'subject' => $subject,
 				'issuer' => $issuer
@@ -228,7 +231,7 @@ class OpenIDConnect extends PluggableAuth {
 		if ( $row === false ) {
 			return null;
 		} else {
-			return $row->user_id;
+			return $row->user_name;
 		}
 	}
 
@@ -259,11 +262,9 @@ class OpenIDConnect extends PluggableAuth {
 		if ( strlen( $preferred_username ) > 0 ) {
 			$name = $preferred_username;
 		} elseif ( strlen ( $realname ) > 0 &&
-			isset( $GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] ) &&
 			$GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] === true ) {
 			$name = $realname;
 		} elseif ( strlen( $email ) > 0 &&
-			isset( $GLOBALS['wgOpenIDConnect_UseEmailNameAsUserName'] ) &&
 			$GLOBALS['wgOpenIDConnect_UseEmailNameAsUserName'] === true ) {
 			$pos = strpos ( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
@@ -293,6 +294,30 @@ class OpenIDConnect extends PluggableAuth {
 		$updater->addExtensionField( 'user', 'issuer',
 			__DIR__ . '/AddIssuer.sql' );
 		return true;
+	}
+
+	/**
+	 *
+	 * @param $page
+	 * @param $params
+	 */
+	private static function redirect( $page, $params = null, $doExit = false ) {
+		$title = Title::newFromText( $page );
+		if ( is_null( $title ) ) {
+			$title = Title::newMainPage();
+		}
+		$url = $title->getFullURL();
+		if ( is_array( $params ) && count( $params ) > 0 ) {
+			foreach ( $params as $key => $value ) {
+				$url = wfAppendQuery( $url, $key . '=' . $value );
+			}
+		}
+		if ( Hooks::run( 'PluggableAuthRedirect', array( &$url ) ) ) {
+			header('Location: ' . $url );
+			if ( $doExit ) {
+				exit;
+			}
+		}
 	}
 }
 

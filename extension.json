@@ -26,6 +26,10 @@
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
 	},
 	"config": {
+		"OpenIDConnect_MigrateUsers": false,
+		"OpenIDConnect_ForceLogout": false,
+		"OpenIDConnect_UseRealNameAsUserName": false,
+		"OpenIDConnect_UseEmailNameAsUserName": false,
 		"PluggableAuth_Class": "OpenIDConnect",
 		"WhitelistRead": [
 			"Special:SelectOpenIDConnectIssuer"
