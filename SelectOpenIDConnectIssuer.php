@@ -55,41 +55,29 @@ class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 				$urlbase .= "&query=" . urlencode( $_REQUEST['query'] );
 				$urlbase .= "&iss=";
 
-				$html = Html::openElement( 'div', array(
-					'style' => 'text-align:center' )
-				);
+				$html = Html::openElement( 'div', [ 'style' => 'text-align:center' ] );
 				$html .= Html::openElement( 'table' );
 				$html .= Html::openElement( 'tr' );
 				$GLOBALS['wgOut']->AddHtml( $html );
 
 				foreach ( $GLOBALS['wgOpenIDConnect_Config'] as $iss => $data ) {
 					$html = Html::openElement( 'td' );
-					$html .= Html::openElement( 'table', array(
-						'style' => 'padding:20px;' )
-					);
+					$html .= Html::openElement( 'table', [ 'style' => 'padding:20px;' ] );
 					$html .= Html::openElement( 'tr' );
 					if ( isset( $data['icon'] ) ) {
-						$html .= Html::openElement( 'td', array(
-							'style' => 'text-align:center;' )
-						);
-						$html .= Html::openElement( 'a', array(
-							'href' => $urlbase . $iss )
-						);
-						$html .= Html::openElement( 'img', array(
-							'src' => $data['icon'] )
-						);
+						$html .= Html::openElement( 'td',
+							[ 'style' => 'text-align:center;' ] );
+						$html .= Html::openElement( 'a', [ 'href' => $urlbase . $iss ] );
+						$html .= Html::openElement( 'img', [ 'src' => $data['icon'] ] );
 						$html .= Html::closeElement( 'img' );
 						$html .= Html::closeElement( 'a' );
 						$html .= Html::closeElement( 'td' );
 						$html .= Html::closeElement( 'tr' );
 						$html .= Html::openElement( 'tr' );
 					}
-					$html .= Html::openElement( 'td', array(
-						'style' => 'text-align:center;' )
-					);
-					$html .= Html::openElement( 'a', array(
-						'href' => $urlbase . $iss )
-					);
+					$html .= Html::openElement( 'td',
+						[ 'style' => 'text-align:center;' ] );
+					$html .= Html::openElement( 'a', [ 'href' => $urlbase . $iss ] );
 					if ( isset( $data['name'] ) ) {
 						$html .= $data['name'];
 					} else {

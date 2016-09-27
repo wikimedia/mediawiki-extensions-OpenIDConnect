@@ -29,11 +29,15 @@ $wgExtensionFunctions[] = function () {
 };
 
 use \MediaWiki\Session\SessionManager;
+use \MediaWiki\Auth\AuthManager;
 
 class OpenIDConnect extends PluggableAuth {
 
 	private $subject;
 	private $issuer;
+
+	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
+	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 
 	/**
 	 * @since 1.0
@@ -74,10 +78,10 @@ class OpenIDConnect extends PluggableAuth {
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
 						wfDebug("OpenID Connect: clientID or clientsecret not set for " . $iss);
-						$params = array(
+						$params = [
 							"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
 							"query" => urlencode( $_SERVER['QUERY_STRING'] )
-						);
+						];
 						self::redirect( "Special:SelectOpenIDConnectIssuer",
 							$params, true );
 						return false;
@@ -114,10 +118,10 @@ class OpenIDConnect extends PluggableAuth {
 
 				} else {
 
-					$params = array(
+					$params = [
 						"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
 						"query" => urlencode( $_SERVER['QUERY_STRING'] )
-					);
+					];
 					self::redirect( "Special:SelectOpenIDConnectIssuer",
 						$params, true );
 					return false;
@@ -129,7 +133,7 @@ class OpenIDConnect extends PluggableAuth {
 
 			$oidc = new OpenIDConnectClient( $iss, $clientID, $clientsecret );
 			if ( isset( $_REQUEST['forcelogin'] ) ) {
-				$oidc->addAuthParam( array( 'prompt' => 'login' ) );
+				$oidc->addAuthParam( [ 'prompt' => 'login' ] );
 			}
 			if ( isset( $config['authparam'] ) &&
 				is_array( $config['authparam'] ) ) {
@@ -175,6 +179,11 @@ class OpenIDConnect extends PluggableAuth {
 				$username = self::getAvailableUsername( $preferred_username,
 					$realname, $email, $this->subject );
 
+				$authManager = Authmanager::singleton();
+				$authManager->setAuthenticationSessionData(
+					OpenIDConnect::OIDC_SUBJECT_SESSION_KEY, $this->subject );
+				$authManager->setAuthenticationSessionData(
+					OpenIDConnect::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 				return true;
 
 			} else {
@@ -196,7 +205,7 @@ class OpenIDConnect extends PluggableAuth {
 	public function deauthenticate( User &$user ) {
 		if ( $GLOBALS['wgOpenIDConnect_ForceLogout'] === true ) {
 			$returnto = 'Special:UserLogin';
-			$params = array( 'forcelogin' => 'true' );
+			$params = [ 'forcelogin' => 'true' ];
 			self::redirect( $returnto, $params );
 		}
 		return true;
@@ -208,25 +217,38 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param $id
 	 */
 	public function saveExtraAttributes( $id ) {
+		$authManager = Authmanager::singleton();
+		if ( is_null( $this->subject ) ) {
+			$this->subject = $authManager->getAuthenticationSessionData(
+				OpenIDConnect::OIDC_SUBJECT_SESSION_KEY );
+			$authManager->removeAuthenticationSessionData(
+				OpenIDConnect::OIDC_SUBJECT_SESSION_KEY );
+		}
+		if ( is_null( $this->issuer ) ) {
+			$this->issuer = $authManager->getAuthenticationSessionData(
+				OpenIDConnect::OIDC_ISSUER_SESSION_KEY );
+			$authManager->removeAuthenticationSessionData(
+				OpenIDConnect::OIDC_ISSUER_SESSION_KEY );
+		}
 		$dbw = wfGetDB( DB_MASTER );
 		$dbw->update( 'user',
-			array( // SET
+			[ // SET
 				'subject' => $this->subject,
 				'issuer' => $this->issuer
-			), array( // WHERE
+			], [ // WHERE
 				'user_id' => $id
-			), __METHOD__
+			], __METHOD__
 		);
 	}
 
 	private static function getName( $subject, $issuer ) {
 		$dbr = wfGetDB( DB_SLAVE );
 		$row = $dbr->selectRow( 'user',
-			array( 'user_name' ),
-			array(
+			[ 'user_name' ],
+			[
 				'subject' => $subject,
 				'issuer' => $issuer
-			), __METHOD__
+			], __METHOD__
 		);
 		if ( $row === false ) {
 			return null;
@@ -243,12 +265,12 @@ class OpenIDConnect extends PluggableAuth {
 		$username = $nt->getText();
 		$dbr = wfGetDB( DB_SLAVE );
 		$row = $dbr->selectRow( 'user',
-			array( 'user_id' ),
-			array(
+			[ 'user_id' ],
+			[
 				'user_name' => $username,
 				'subject' => null,
 				'issuer' => null
-			), __METHOD__
+			], __METHOD__
 		);
 		if ( $row === false ) {
 			return null;
@@ -312,11 +334,9 @@ class OpenIDConnect extends PluggableAuth {
 				$url = wfAppendQuery( $url, $key . '=' . $value );
 			}
 		}
-		if ( Hooks::run( 'PluggableAuthRedirect', array( &$url ) ) ) {
-			header('Location: ' . $url );
-			if ( $doExit ) {
-				exit;
-			}
+		header('Location: ' . $url );
+		if ( $doExit ) {
+			exit;
 		}
 	}
 }
