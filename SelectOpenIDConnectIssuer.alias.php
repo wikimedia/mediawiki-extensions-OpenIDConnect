@@ -23,24 +23,24 @@
  */
 // @codingStandardsIgnoreFile
 
-$specialPageAliases = array();
+$specialPageAliases = [];
 
 /** English (English) */
-$specialPageAliases['en'] = array(
-	'SelectOpenIDConnectIssuer' => array( 'SelectOpenIDConnectIssuer', 'Select OpenID Connect Issuer' ),
-);
+$specialPageAliases['en'] = [
+	'SelectOpenIDConnectIssuer' => [ 'SelectOpenIDConnectIssuer', 'Select OpenID Connect Issuer' ],
+];
 
 /** Arabic (العربية) */
-$specialPageAliases['ar'] = array(
-	'SelectOpenIDConnectIssuer' => array( 'اختيار_متحكم_الهوية_المفتوحة' ),
-);
+$specialPageAliases['ar'] = [
+	'SelectOpenIDConnectIssuer' => [ 'اختيار_متحكم_الهوية_المفتوحة' ],
+];
 
 /** German (Deutsch) */
-$specialPageAliases['de'] = array(
-	'SelectOpenIDConnectIssuer' => array( 'OpenID-Verbindungsherausgeber_auswählen' ),
-);
+$specialPageAliases['de'] = [
+	'SelectOpenIDConnectIssuer' => [ 'OpenID-Verbindungsherausgeber_auswählen' ],
+];
 
 /** Simplified Chinese (中文（简体）‎) */
-$specialPageAliases['zh-hans'] = array(
-	'SelectOpenIDConnectIssuer' => array( '选择OpenID连接发行商' ),
-);
+$specialPageAliases['zh-hans'] = [
+	'SelectOpenIDConnectIssuer' => [ '选择OpenID连接发行商' ],
+];
