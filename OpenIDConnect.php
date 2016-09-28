@@ -77,7 +77,7 @@ class OpenIDConnect extends PluggableAuth {
 
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
-						wfDebug("OpenID Connect: clientID or clientsecret not set for " . $iss);
+						wfDebug( "OpenID Connect: clientID or clientsecret not set for " . $iss );
 						$params = [
 							"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
 							"query" => urlencode( $_SERVER['QUERY_STRING'] )
@@ -111,8 +111,8 @@ class OpenIDConnect extends PluggableAuth {
 
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
-						wfDebug("OpenID Connect: clientID or clientsecret not set for " .
-							$iss);
+						wfDebug( "OpenID Connect: clientID or clientsecret not set for " .
+							$iss );
 						return false;
 					}
 
@@ -334,7 +334,7 @@ class OpenIDConnect extends PluggableAuth {
 				$url = wfAppendQuery( $url, $key . '=' . $value );
 			}
 		}
-		header('Location: ' . $url );
+		header( 'Location: ' . $url );
 		if ( $doExit ) {
 			exit;
 		}
