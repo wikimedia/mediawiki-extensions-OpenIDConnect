@@ -339,5 +339,19 @@ class OpenIDConnect extends PluggableAuth {
 			exit;
 		}
 	}
+
+	/**
+	 * Implements extension registration callback.
+	 * See https://www.mediawiki.org/wiki/Manual:Extension_registration#Customizing_registration
+	 *
+	 * @since 2.3
+	 *
+	 */
+	public static function onRegistration() {
+		if ( !$GLOBALS['wgWhitelistRead'] ) {
+			$GLOBALS['wgWhitelistRead'] = [];
+		}
+		$GLOBALS['wgWhitelistRead'][] = 'Special:SelectOpenIDConnectIssuer';
+	}
 }
 

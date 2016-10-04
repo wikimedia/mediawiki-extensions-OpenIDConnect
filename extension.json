@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "2.2",
+	"version": "2.3",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -22,6 +22,7 @@
 		"OpenIDConnect": "OpenIDConnect.php",
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
 	},
+	"callback": "OpenIDConnect::onRegistration",
 	"Hooks": {
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
 	},
@@ -30,10 +31,7 @@
 		"OpenIDConnect_ForceLogout": false,
 		"OpenIDConnect_UseRealNameAsUserName": false,
 		"OpenIDConnect_UseEmailNameAsUserName": false,
-		"PluggableAuth_Class": "OpenIDConnect",
-		"WhitelistRead": [
-			"Special:SelectOpenIDConnectIssuer"
-		]
+		"PluggableAuth_Class": "OpenIDConnect"
 	},
 	"load_composer_autoloader": true,
 	"manifest_version": 1
