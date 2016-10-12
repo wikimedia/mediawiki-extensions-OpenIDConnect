@@ -22,12 +22,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-$wgExtensionFunctions[] = function () {
-	if ( !class_exists( 'PluggableAuth' ) ) {
-		die( '<b>Error:</b> This extension requires the PluggableAuth extension to be included first' );
-	}
-};
-
 use \MediaWiki\Session\SessionManager;
 use \MediaWiki\Auth\AuthManager;
 
@@ -345,19 +339,6 @@ class OpenIDConnect extends PluggableAuth {
 		return $name . $count;
 	}
 
-	public static function loadExtensionSchemaUpdates( $updater ) {
-		$updater->addExtensionField( 'user', 'subject',
-			__DIR__ . '/AddSubject.sql' );
-		$updater->addExtensionField( 'user', 'issuer',
-			__DIR__ . '/AddIssuer.sql' );
-		return true;
-	}
-
-	/**
-	 *
-	 * @param $page
-	 * @param $params
-	 */
 	private static function redirect( $page, $params = null, $doExit = false ) {
 		$title = Title::newFromText( $page );
 		if ( is_null( $title ) ) {
@@ -375,17 +356,11 @@ class OpenIDConnect extends PluggableAuth {
 		}
 	}
 
-	/**
-	 * Implements extension registration callback.
-	 * See https://www.mediawiki.org/wiki/Manual:Extension_registration#Customizing_registration
-	 *
-	 * @since 2.3
-	 *
-	 */
-	public static function onRegistration() {
-		if ( !$GLOBALS['wgWhitelistRead'] ) {
-			$GLOBALS['wgWhitelistRead'] = [];
-		}
-		$GLOBALS['wgWhitelistRead'][] = 'Special:SelectOpenIDConnectIssuer';
+	public static function loadExtensionSchemaUpdates( $updater ) {
+		$updater->addExtensionField( 'user', 'subject',
+			__DIR__ . '/AddSubject.sql' );
+		$updater->addExtensionField( 'user', 'issuer',
+			__DIR__ . '/AddIssuer.sql' );
+		return true;
 	}
 }

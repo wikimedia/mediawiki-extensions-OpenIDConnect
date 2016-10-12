@@ -7,6 +7,9 @@
 	"url": "https://www.mediawiki.org/wiki/Extension:OpenID_Connect",
 	"descriptionmsg": "openidconnect-desc",
 	"type": "other",
+	"requires": {
+		"PluggableAuth": ">= 2.0"
+	},
 	"SpecialPages": {
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer"
 	},
@@ -22,7 +25,6 @@
 		"OpenIDConnect": "OpenIDConnect.php",
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
 	},
-	"callback": "OpenIDConnect::onRegistration",
 	"Hooks": {
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
 	},
@@ -34,6 +36,9 @@
 		"OpenIDConnect_UseEmailNameAsUserName": false,
 		"PluggableAuth_Class": "OpenIDConnect"
 	},
+	"PluggableAuthLoginSpecialPages": [
+		"SelectOpenIDConnectIssuer"
+	],
 	"load_composer_autoloader": true,
 	"manifest_version": 1
 }
