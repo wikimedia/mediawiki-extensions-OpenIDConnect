@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "3.0",
+	"version": "3.1",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -24,7 +24,7 @@
 		"SelectOpenIDConnectIssuerAlias": "SelectOpenIDConnectIssuer.alias.php"
 	},
 	"AutoloadClasses": {
-		"OpenIDConnect": "OpenIDConnect.php",
+		"OpenIDConnect": "OpenIDConnect.class.php",
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
 	},
 	"Hooks": {
