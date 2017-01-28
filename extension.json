@@ -8,7 +8,9 @@
 	"descriptionmsg": "openidconnect-desc",
 	"type": "other",
 	"requires": {
-		"PluggableAuth": ">= 2.0"
+		"extensions": {
+			"PluggableAuth": ">= 2.0"
+		}
 	},
 	"SpecialPages": {
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer"
