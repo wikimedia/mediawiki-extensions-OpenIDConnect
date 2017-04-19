@@ -40,8 +40,10 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param &$username
 	 * @param &$realname
 	 * @param &$email
+	 * @param &$errorMessage
 	 */
-	public function authenticate( &$id, &$username, &$realname, &$email ) {
+	public function authenticate( &$id, &$username, &$realname, &$email,
+		&$errorMessage ) {
 
 		if ( !array_key_exists( 'SERVER_PORT', $_SERVER ) ) {
 			wfDebug( "in authenticate, server port not set" . PHP_EOL );
