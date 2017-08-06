@@ -1,9 +1,6 @@
 {
 	"name": "mediawiki/OpenIDConnect",
 	"description": "Provides authentication using OpenID Connect in conjunction with PluggableAuth",
-	"require": {
-		"jumbojett/openid-connect-php": "*"
-	},
 	"license": "MIT",
 	"authors": [
 		{
@@ -11,6 +8,15 @@
 			"email": "cicalese@mitre.org"
 		}
 	],
+	"repositories": [
+		{
+			"url": "https://github.com/jumbojett/OpenID-Connect-PHP.git",
+			"type": "git"
+		}
+	],
+	"require": {
+		"jumbojett/openid-connect-php": "master-dev"
+	},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "0.9.2",
 		"jakub-onderka/php-console-highlighter": "0.3.2"
