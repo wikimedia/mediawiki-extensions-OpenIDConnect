@@ -24,6 +24,7 @@
 
 use \MediaWiki\Session\SessionManager;
 use \MediaWiki\Auth\AuthManager;
+use \Jumbojett\OpenIDConnectClient;
 
 class OpenIDConnect extends PluggableAuth {
 
