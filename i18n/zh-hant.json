@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Kly"
+		]
+	},
+	"openidconnect-desc": "提供使用 OpenID Connect 與 PluggableAuth 結合的認證",
+	"selectopenidconnectissuer": "選擇認證發行者"
+}
