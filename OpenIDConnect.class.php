@@ -152,7 +152,11 @@ class OpenIDConnect extends PluggableAuth {
 			if ( $oidc->authenticate() ) {
 
 				$preferred_username =
-					$oidc->requestUserInfo( "preferred_username" );
+					$oidc->requestUserInfo(
+						isset($config['preferred_username']) ?
+						$config['preferred_username'] :
+						"preferred_username"
+					);
 				$realname = $oidc->requestUserInfo( "name" );
 				$email = $oidc->requestUserInfo( "email" );
 				$this->subject = $oidc->requestUserInfo( 'sub' );
