@@ -368,9 +368,8 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param DatabaseUpdater $updater
 	 */
 	public static function loadExtensionSchemaUpdates( $updater ) {
-		$updater->addExtensionField( 'user', 'subject',
-			__DIR__ . '/AddSubject.sql' );
-		$updater->addExtensionField( 'user', 'issuer',
-			__DIR__ . '/AddIssuer.sql' );
+		$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
+		$updater->addExtensionField( 'user', 'subject', $dir . '/AddSubject.sql' );
+		$updater->addExtensionField( 'user', 'issuer', $dir . '/AddIssuer.sql' );
 	}
 }
