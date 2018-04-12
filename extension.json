@@ -24,7 +24,7 @@
 		"SelectOpenIDConnectIssuerAlias": "SelectOpenIDConnectIssuer.alias.php"
 	},
 	"AutoloadClasses": {
-		"OpenIDConnect": "OpenIDConnect.class.php",
+		"OpenIDConnect": "OpenIDConnect.php",
 		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
 	},
 	"Hooks": {
