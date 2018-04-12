@@ -21,11 +21,11 @@
 		]
 	},
 	"ExtensionMessagesFiles": {
-		"SelectOpenIDConnectIssuerAlias": "SelectOpenIDConnectIssuer.alias.php"
+		"SelectOpenIDConnectIssuerAlias": "i18n/SelectOpenIDConnectIssuer.alias.php"
 	},
 	"AutoloadClasses": {
-		"OpenIDConnect": "OpenIDConnect.php",
-		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer.php"
+		"OpenIDConnect": "src/OpenIDConnect.php",
+		"SelectOpenIDConnectIssuer": "src/SelectOpenIDConnectIssuer.php"
 	},
 	"Hooks": {
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
