@@ -15,7 +15,7 @@
 		}
 	],
 	"require": {
-		"jumbojett/openid-connect-php": "master-dev"
+		"jumbojett/openid-connect-php": "0.5.0"
 	},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "1.0.0",
