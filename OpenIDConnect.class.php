@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2015-2016 The MITRE Corporation
+ * Copyright (c) 2015-2018 The MITRE Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -37,15 +37,15 @@ class OpenIDConnect extends PluggableAuth {
 	/**
 	 * @since 1.0
 	 *
-	 * @param &$id
-	 * @param &$username
-	 * @param &$realname
-	 * @param &$email
-	 * @param &$errorMessage
+	 * @param int &$id
+	 * @param string &$username
+	 * @param string &$realname
+	 * @param string &$email
+	 * @param string &$errorMessage
+	 * @return bool true if user is authenticated, false otherwise
 	 */
 	public function authenticate( &$id, &$username, &$realname, &$email,
 		&$errorMessage ) {
-
 		if ( !array_key_exists( 'SERVER_PORT', $_SERVER ) ) {
 			wfDebug( "in authenticate, server port not set" . PHP_EOL );
 			return false;
@@ -153,7 +153,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				$preferred_username =
 					$oidc->requestUserInfo(
-						isset($config['preferred_username']) ?
+						isset( $config['preferred_username'] ) ?
 						$config['preferred_username'] :
 						"preferred_username"
 					);
@@ -167,8 +167,8 @@ class OpenIDConnect extends PluggableAuth {
 					return true;
 				}
 
-				if( $GLOBALS['wgOpenIDConnect_MigrateUsersByEmail'] === true ) {
-					list ( $id, $username ) = $this->getMigratedIdByEmail( $email );
+				if ( $GLOBALS['wgOpenIDConnect_MigrateUsersByEmail'] === true ) {
+					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
 						wfDebug( "Migrated user " . $username . " by email: " . $email );
@@ -189,9 +189,9 @@ class OpenIDConnect extends PluggableAuth {
 
 				$authManager = Authmanager::singleton();
 				$authManager->setAuthenticationSessionData(
-					OpenIDConnect::OIDC_SUBJECT_SESSION_KEY, $this->subject );
+					self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
 				$authManager->setAuthenticationSessionData(
-					OpenIDConnect::OIDC_ISSUER_SESSION_KEY, $this->issuer );
+					self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 				return true;
 
 			} else {
@@ -216,41 +216,40 @@ class OpenIDConnect extends PluggableAuth {
 			$params = [ 'forcelogin' => 'true' ];
 			self::redirect( $returnto, $params );
 		}
-		return true;
 	}
 
 	/**
 	 * @since 1.0
 	 *
-	 * @param $id
+	 * @param int $id user id
 	 */
 	public function saveExtraAttributes( $id ) {
 		$authManager = Authmanager::singleton();
 		if ( is_null( $this->subject ) ) {
 			$this->subject = $authManager->getAuthenticationSessionData(
-				OpenIDConnect::OIDC_SUBJECT_SESSION_KEY );
+				self::OIDC_SUBJECT_SESSION_KEY );
 			$authManager->removeAuthenticationSessionData(
-				OpenIDConnect::OIDC_SUBJECT_SESSION_KEY );
+				self::OIDC_SUBJECT_SESSION_KEY );
 		}
 		if ( is_null( $this->issuer ) ) {
 			$this->issuer = $authManager->getAuthenticationSessionData(
-				OpenIDConnect::OIDC_ISSUER_SESSION_KEY );
+				self::OIDC_ISSUER_SESSION_KEY );
 			$authManager->removeAuthenticationSessionData(
-				OpenIDConnect::OIDC_ISSUER_SESSION_KEY );
+				self::OIDC_ISSUER_SESSION_KEY );
 		}
 		$dbw = wfGetDB( DB_MASTER );
 		$dbw->update( 'user',
-			[ // SET
+			[
 				'subject' => $this->subject,
 				'issuer' => $this->issuer
-			], [ // WHERE
+			], [
 				'user_id' => $id
 			], __METHOD__
 		);
 	}
 
 	private static function getName( $subject, $issuer ) {
-		$dbr = wfGetDB( DB_SLAVE );
+		$dbr = wfGetDB( DB_REPLICA );
 		$row = $dbr->selectRow( 'user',
 			[ 'user_name' ],
 			[
@@ -271,7 +270,7 @@ class OpenIDConnect extends PluggableAuth {
 			return null;
 		}
 		$username = $nt->getText();
-		$dbr = wfGetDB( DB_SLAVE );
+		$dbr = wfGetDB( DB_REPLICA );
 		$row = $dbr->selectRow( 'user',
 			[ 'user_id' ],
 			[
@@ -290,7 +289,7 @@ class OpenIDConnect extends PluggableAuth {
 
 	private static function getMigratedIdByEmail( $email ) {
 		wfDebug( "Matching user to email " . $email );
-		$dbr = wfGetDB( DB_SLAVE );
+		$dbr = wfGetDB( DB_REPLICA );
 		$row = $dbr->selectRow( 'user',
 			[
 				'user_id',
@@ -319,12 +318,12 @@ class OpenIDConnect extends PluggableAuth {
 		$realname, $email, $subject ) {
 		if ( strlen( $preferred_username ) > 0 ) {
 			$name = $preferred_username;
-		} elseif ( strlen ( $realname ) > 0 &&
+		} elseif ( strlen( $realname ) > 0 &&
 			$GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] === true ) {
 			$name = $realname;
 		} elseif ( strlen( $email ) > 0 &&
 			$GLOBALS['wgOpenIDConnect_UseEmailNameAsUserName'] === true ) {
-			$pos = strpos ( $email, '@' );
+			$pos = strpos( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
 				$name = substr( $email, 0, $pos );
 			} else {
@@ -363,11 +362,15 @@ class OpenIDConnect extends PluggableAuth {
 		}
 	}
 
+	/**
+	 * Implements LoadExtensionSchemaUpdates hook.
+	 *
+	 * @param DatabaseUpdater $updater
+	 */
 	public static function loadExtensionSchemaUpdates( $updater ) {
 		$updater->addExtensionField( 'user', 'subject',
 			__DIR__ . '/AddSubject.sql' );
 		$updater->addExtensionField( 'user', 'issuer',
 			__DIR__ . '/AddIssuer.sql' );
-		return true;
 	}
 }

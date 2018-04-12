@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2015-2016 The MITRE Corporation
+ * Copyright (c) 2015-2018 The MITRE Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -24,12 +24,14 @@
 
 class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 
-	function __construct() {
+	public function __construct() {
 		parent::__construct( 'SelectOpenIDConnectIssuer' );
 	}
 
-	function execute( $param ) {
-
+	/**
+	 * @inheritDoc
+	 */
+	public function execute( $param ) {
 		if ( isset( $GLOBALS['wgOpenIDConnect_Config'] ) &&
 			isset( $_REQUEST['uri'] ) && isset( $_REQUEST['query'] ) ) {
 
@@ -99,4 +101,3 @@ class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 		}
 	}
 }
-
