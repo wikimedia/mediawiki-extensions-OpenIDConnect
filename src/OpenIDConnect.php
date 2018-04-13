@@ -47,12 +47,14 @@ class OpenIDConnect extends PluggableAuth {
 	public function authenticate( &$id, &$username, &$realname, &$email,
 		&$errorMessage ) {
 		if ( !array_key_exists( 'SERVER_PORT', $_SERVER ) ) {
-			wfDebug( "in authenticate, server port not set" . PHP_EOL );
+			wfDebugLog( 'OpenID Connect', 'in authenticate, server port not set' .
+				PHP_EOL );
 			return false;
 		}
 
 		if ( !isset( $GLOBALS['wgOpenIDConnect_Config'] ) ) {
-			wfDebug( "wgOpenIDConnect_Config not set" . PHP_EOL );
+			wfDebugLog( 'OpenID Connect', 'wgOpenIDConnect_Config not set' .
+				PHP_EOL );
 			return false;
 		}
 
@@ -74,19 +76,21 @@ class OpenIDConnect extends PluggableAuth {
 
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
-						wfDebug( "OpenID Connect: clientID or clientsecret not set for " . $iss );
+						wfDebugLog( 'OpenID Connect',
+							'OpenID Connect: clientID or clientsecret not set for ' . $iss .
+							'.' . PHP_EOL );
 						$params = [
-							"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
-							"query" => urlencode( $_SERVER['QUERY_STRING'] )
+							'uri' => urlencode( $_SERVER['REQUEST_URI'] ),
+							'query' => urlencode( $_SERVER['QUERY_STRING'] )
 						];
-						self::redirect( "Special:SelectOpenIDConnectIssuer",
+						self::redirect( 'Special:SelectOpenIDConnectIssuer',
 							$params, true );
 						return false;
 					}
 
 				} else {
-					wfDebug( 'Issuer ' . $iss .
-						' does not exist in wgOpeIDConnect_Config'. PHP_EOL );
+					wfDebugLog( 'OpenID Connect', 'Issuer ' . $iss .
+						' does not exist in wgOpeIDConnect_Config.'. PHP_EOL );
 					return false;
 				}
 
@@ -108,18 +112,19 @@ class OpenIDConnect extends PluggableAuth {
 
 					if ( !isset( $config['clientID'] ) ||
 						!isset( $config['clientsecret'] ) ) {
-						wfDebug( "OpenID Connect: clientID or clientsecret not set for " .
-							$iss );
+						wfDebugLog( 'OpenID Connect',
+							'OpenID Connect: clientID or clientsecret not set for ' .
+							$iss . '.' . PHP_EOL );
 						return false;
 					}
 
 				} else {
 
 					$params = [
-						"uri" => urlencode( $_SERVER['REQUEST_URI'] ),
-						"query" => urlencode( $_SERVER['QUERY_STRING'] )
+						'uri' => urlencode( $_SERVER['REQUEST_URI'] ),
+						'query' => urlencode( $_SERVER['QUERY_STRING'] )
 					];
-					self::redirect( "Special:SelectOpenIDConnectIssuer",
+					self::redirect( 'Special:SelectOpenIDConnectIssuer',
 						$params, true );
 					return false;
 				}
@@ -151,41 +156,60 @@ class OpenIDConnect extends PluggableAuth {
 			}
 			if ( $oidc->authenticate() ) {
 
-				$preferred_username =
-					$oidc->requestUserInfo(
-						isset( $config['preferred_username'] ) ?
-						$config['preferred_username'] :
-						"preferred_username"
-					);
-				$realname = $oidc->requestUserInfo( "name" );
-				$email = $oidc->requestUserInfo( "email" );
+				$realname = $oidc->requestUserInfo( 'name' );
+				$email = $oidc->requestUserInfo( 'email' );
 				$this->subject = $oidc->requestUserInfo( 'sub' );
 				$this->issuer = $oidc->getProviderURL();
+				wfDebugLog( 'OpenID Connect', 'Real name: ' . $realname .
+					', Email: ' . $email . ', Subject: ' . $this->subject .
+					', Issuer: ' . $this->issuer );
 
-				$username = $this->getName( $this->subject, $this->issuer );
-				if ( !is_null( $username ) ) {
+				list( $id, $username ) =
+					$this->findUser( $this->subject, $this->issuer );
+				if ( !is_null( $id ) ) {
+					wfDebugLog( 'OpenID Connect',
+						'Found user with matching subject and issuer.' . PHP_EOL );
 					return true;
 				}
 
+				wfDebugLog( 'OpenID Connect',
+					'No user found with matching subject and issuer.' . PHP_EOL );
+
 				if ( $GLOBALS['wgOpenIDConnect_MigrateUsersByEmail'] === true ) {
+					wfDebugLog( 'OpenID Connect', 'Checking for email migration.' .
+						PHP_EOL );
 					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
-						wfDebug( "Migrated user " . $username . " by email: " . $email );
+						wfDebugLog( 'OpenID Connect', 'Migrated user ' . $username .
+							' by email: ' . $email . '.' .  PHP_EOL );
 						return true;
 					}
-				} elseif ( $GLOBALS['wgOpenIDConnect_MigrateUsersByUserName'] === true ) {
+				}
+
+				$preferred_username = $this->getPreferredUsername( $config, $oidc,
+					$realname, $email );
+				wfDebugLog( 'OpenID Connect', 'Preferred username: ' .
+					$preferred_username . PHP_EOL );
+
+				if ( $GLOBALS['wgOpenIDConnect_MigrateUsersByUserName'] === true ) {
+					wfDebugLog( 'OpenID Connect', 'Checking for username migration.' .
+						PHP_EOL );
 					$id = $this->getMigratedIdByUserName( $preferred_username );
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
-						wfDebug( "Migrated user by username: " . $preferred_username );
+						wfDebugLog( 'OpenID Connect', 'Migrated user by username: ' .
+							$preferred_username . '.' . PHP_EOL );
 						$username = $preferred_username;
 						return true;
 					}
 				}
 
 				$username = self::getAvailableUsername( $preferred_username,
-					$realname, $email, $this->subject );
+					$realname, $email );
+
+				wfDebugLog( 'OpenID Connect', 'Available username: ' .
+					$username . PHP_EOL );
 
 				$authManager = Authmanager::singleton();
 				$authManager->setAuthenticationSessionData(
@@ -193,13 +217,11 @@ class OpenIDConnect extends PluggableAuth {
 				$authManager->setAuthenticationSessionData(
 					self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 				return true;
-
-			} else {
-				$session->clear();
-				return false;
 			}
+
 		} catch ( Exception $e ) {
-			wfDebug( $e->__toString() . PHP_EOL );
+			wfDebugLog( 'OpenID Connect', $e->__toString() . PHP_EOL );
+			$errorMessage = $e->__toString();
 			$session->clear();
 			return false;
 		}
@@ -238,73 +260,43 @@ class OpenIDConnect extends PluggableAuth {
 				self::OIDC_ISSUER_SESSION_KEY );
 		}
 		$dbw = wfGetDB( DB_MASTER );
-		$dbw->update( 'user',
+		$dbw->upsert(
+			'openid_connect',
 			[
-				'subject' => $this->subject,
-				'issuer' => $this->issuer
-			], [
-				'user_id' => $id
-			], __METHOD__
-		);
-	}
-
-	private static function getName( $subject, $issuer ) {
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow( 'user',
-			[ 'user_name' ],
+				'oidc_user' => $id,
+				'oidc_subject' => $this->subject,
+				'oidc_issuer' => $this->issuer
+			],
 			[
-				'subject' => $subject,
-				'issuer' => $issuer
-			], __METHOD__
-		);
-		if ( $row === false ) {
-			return null;
-		} else {
-			return $row->user_name;
-		}
-	}
-
-	private static function getMigratedIdByUserName( $username ) {
-		$nt = Title::makeTitleSafe( NS_USER, $username );
-		if ( is_null( $nt ) ) {
-			return null;
-		}
-		$username = $nt->getText();
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow( 'user',
-			[ 'user_id' ],
+				[ 'oidc_user' ]
+			],
 			[
-				'user_name' => $username,
-				'subject' => null,
-				'issuer' => null
+				'oidc_subject' => $this->subject,
+				'oidc_issuer' => $this->issuer
 			],
 			__METHOD__
 		);
-		if ( $row === false ) {
-			return null;
-		} else {
-			return $row->user_id;
-		}
 	}
 
-	private static function getMigratedIdByEmail( $email ) {
-		wfDebug( "Matching user to email " . $email );
+	private static function findUser( $subject, $issuer ) {
 		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow( 'user',
+		$row = $dbr->selectRow(
+			[
+				'user',
+				'openid_connect'
+			],
 			[
 				'user_id',
 				'user_name'
 			],
 			[
-				'user_email' => $email,
-				'subject' => null,
-				'issuer' => null
+				'oidc_subject' => $subject,
+				'oidc_issuer' => $issuer
 			],
 			__METHOD__,
+			[],
 			[
-				// if multiple matching accounts, use the oldest one
-				'ORDER BY' => 'user_registration',
-				'LIMIT' => 1
+				'openid_connect' => [ 'JOIN', [ 'user_id=oidc_user' ] ]
 			]
 		);
 		if ( $row === false ) {
@@ -314,35 +306,119 @@ class OpenIDConnect extends PluggableAuth {
 		}
 	}
 
-	private static function getAvailableUsername( $preferred_username,
-		$realname, $email, $subject ) {
+	private static function getPreferredUsername( $config, $oidc, $realname,
+		$email ) {
+		if ( isset( $config['preferred_username'] ) ) {
+			wfDebugLog( 'OpenID Connect', 'Using ' .  $config['preferred_username'] .
+				' attribute for preferred username.' . PHP_EOL );
+			$preferred_username =
+				$oidc->requestUserInfo( $config['preferred_username'] );
+		} else {
+			$preferred_username = $oidc->requestUserInfo( 'preferred_username' );
+		}
 		if ( strlen( $preferred_username ) > 0 ) {
-			$name = $preferred_username;
+			$preferred_username = $preferred_username;
 		} elseif ( strlen( $realname ) > 0 &&
 			$GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] === true ) {
-			$name = $realname;
+			$preferred_username = $realname;
 		} elseif ( strlen( $email ) > 0 &&
 			$GLOBALS['wgOpenIDConnect_UseEmailNameAsUserName'] === true ) {
 			$pos = strpos( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
-				$name = substr( $email, 0, $pos );
+				$preferred_username = substr( $email, 0, $pos );
 			} else {
-				$name = $email;
+				$preferred_username = $email;
 			}
-		}
-		$nt = Title::makeTitleSafe( NS_USER, $name );
-		if ( is_null( $nt ) ) {
-			$name = "User";
-		} elseif ( is_null( User::idFromName( $name ) ) ) {
-			return $nt->getText();
 		} else {
-			$name = $nt->getText();
+			return null;
 		}
+		$nt = Title::makeTitleSafe( NS_USER, $preferred_username );
+		if ( is_null( $nt ) ) {
+			return null;
+		}
+		return $preferred_username;
+	}
+
+	private static function getMigratedIdByUserName( $username ) {
+		$nt = Title::makeTitleSafe( NS_USER, $username );
+		if ( is_null( $nt ) ) {
+			wfDebugLog( 'OpenID Connect',
+				'Invalid preferred username for migration: ' . $username . '.' .
+				PHP_EOL );
+			return null;
+		}
+		$username = $nt->getText();
+		$dbr = wfGetDB( DB_REPLICA );
+		$row = $dbr->selectRow(
+			[
+				'user',
+				'openid_connect'
+			],
+			[
+				'user_id'
+			],
+			[
+				'user_name' => $username,
+				'oidc_user' => null
+			],
+			__METHOD__,
+			[],
+			[
+				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
+			]
+		);
+		if ( $row !== false ) {
+			return $row->user_id;
+		}
+		return null;
+	}
+
+	private static function getMigratedIdByEmail( $email ) {
+		wfDebugLog( 'OpenID Connect', 'Matching user to email ' . $email . '.' .
+			PHP_EOL );
+		$dbr = wfGetDB( DB_REPLICA );
+		$row = $dbr->selectRow(
+			[
+				'user',
+				'openid_connect'
+			],
+			[
+				'user_id',
+				'user_name',
+				'oidc_user'
+			],
+			[
+				'user_email' => $email
+			],
+			__METHOD__,
+			[
+				// if multiple matching accounts, use the oldest one
+				'ORDER BY' => 'user_registration'
+			],
+			[
+				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
+			]
+		);
+		if ( $row !== false && $row->oidc_user === null ) {
+			return [ $row->user_id, $row->user_name ];
+		}
+		return [ null, null ];
+	}
+
+	private static function getAvailableUsername( $preferred_username ) {
+		if ( is_null( $preferred_username ) ) {
+			$preferred_username = 'User';
+		}
+
+		if ( is_null( User::idFromName( $preferred_username ) ) ) {
+			return $preferred_username;
+		}
+
 		$count = 1;
-		while ( !is_null( User::idFromName( $name . $count ) ) ) {
+		while ( !is_null( User::idFromName( $preferred_username . $count ) ) ) {
 			$count++;
 		}
-		return $name . $count;
+		return $preferred_username . $count;
 	}
 
 	private static function redirect( $page, $params = null, $doExit = false ) {
@@ -369,7 +445,34 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	public static function loadExtensionSchemaUpdates( $updater ) {
 		$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
-		$updater->addExtensionField( 'user', 'subject', $dir . '/AddSubject.sql' );
-		$updater->addExtensionField( 'user', 'issuer', $dir . '/AddIssuer.sql' );
+		$type = $updater->getDB()->getType();
+		$updater->addExtensionTable( 'openid_connect',
+			$dir . $type . '/AddTable.sql' );
+		$updater->addExtensionUpdate( [ [ __CLASS__, 'migrateSubjectAndIssuer' ],
+			$updater ] );
+	}
+
+	/**
+	 * Migrate subject and issuer columns from user table to openid_connect
+	 * table.
+	 *
+	 * @param DatabaseUpdater $updater
+	 */
+	public static function migrateSubjectAndIssuer( $updater ) {
+		if ( $updater->getDB()->fieldExists( 'user', 'subject', __METHOD__ ) &&
+			$updater->getDB()->fieldExists( 'user', 'issuer', __METHOD__ ) ) {
+			$maintenance = new FakeMaintenance();
+			$task = $maintenance->runChild(
+				'MigrateOIDCSubjectAndIssuerFromUserTable' );
+			if ( $task->execute() ) {
+				$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
+				$type = $updater->getDB()->getType();
+				$patch = $dir . $type . '/DropColumnsFromUserTable.sql';
+				$updater->modifyField( 'user', 'subject', $patch, true );
+			}
+		} else {
+			$updater->output(
+				'...user table does not have subject and issuer columns.' . PHP_EOL );
+		}
 	}
 }
