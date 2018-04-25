@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "4.1",
+	"version": "5.0",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -25,7 +25,9 @@
 	},
 	"AutoloadClasses": {
 		"OpenIDConnect": "src/OpenIDConnect.php",
-		"SelectOpenIDConnectIssuer": "src/SelectOpenIDConnectIssuer.php"
+		"SelectOpenIDConnectIssuer": "src/SelectOpenIDConnectIssuer.php",
+		"MigrateOIDCSubjectAndIssuerFromUserTable":
+			"maintenance/MigrateOIDCSubjectAndIssuerFromUserTable.php"
 	},
 	"Hooks": {
 		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
