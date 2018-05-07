@@ -75,9 +75,9 @@ class MigrateOIDCSubjectAndIssuerFromUserTable extends LoggedUpdateMaintenance {
 			'openid_connect',
 			'user',
 			[
-				'oic_user' => 'user_id',
-				'oic_subject' => 'subject',
-				'oic_issuer' => 'issuer'
+				'oidc_user' => 'user_id',
+				'oidc_subject' => 'subject',
+				'oidc_issuer' => 'issuer'
 			],
 			[
 				'subject IS NOT NULL',
