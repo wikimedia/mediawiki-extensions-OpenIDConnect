@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"ديفيد"
+		]
+	},
+	"openidconnect-desc": "يوفر المصادقة باستخدام OpenID Connect بالاقتران مع PluggableAuth",
+	"selectopenidconnectissuer": "حدد مصدر المصادقة"
+}
