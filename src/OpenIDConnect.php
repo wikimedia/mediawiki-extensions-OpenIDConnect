@@ -90,7 +90,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				} else {
 					wfDebugLog( 'OpenID Connect', 'Issuer ' . $iss .
-						' does not exist in wgOpeIDConnect_Config.'. PHP_EOL );
+						' does not exist in wgOpeIDConnect_Config.' . PHP_EOL );
 					return false;
 				}
 
@@ -182,7 +182,7 @@ class OpenIDConnect extends PluggableAuth {
 					if ( !is_null( $id ) ) {
 						$this->saveExtraAttributes( $id );
 						wfDebugLog( 'OpenID Connect', 'Migrated user ' . $username .
-							' by email: ' . $email . '.' .  PHP_EOL );
+							' by email: ' . $email . '.' . PHP_EOL );
 						return true;
 					}
 				}
@@ -309,7 +309,7 @@ class OpenIDConnect extends PluggableAuth {
 	private static function getPreferredUsername( $config, $oidc, $realname,
 		$email ) {
 		if ( isset( $config['preferred_username'] ) ) {
-			wfDebugLog( 'OpenID Connect', 'Using ' .  $config['preferred_username'] .
+			wfDebugLog( 'OpenID Connect', 'Using ' . $config['preferred_username'] .
 				' attribute for preferred username.' . PHP_EOL );
 			$preferred_username =
 				$oidc->requestUserInfo( $config['preferred_username'] );
