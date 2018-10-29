@@ -154,6 +154,10 @@ class OpenIDConnect extends PluggableAuth {
 			if ( isset( $config['proxy'] ) ) {
 				$oidc->setHttpProxy( $config['proxy'] );
 			}
+			$redirectURL =
+				SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
+			$oidc->setRedirectURL( $redirectURL );
+			wfDebugLog( 'OpenID Connect', 'Redirect URL: ' . $redirectURL );
 			if ( $oidc->authenticate() ) {
 
 				$realname = $oidc->requestUserInfo( 'name' );
@@ -421,17 +425,12 @@ class OpenIDConnect extends PluggableAuth {
 		return $preferred_username . $count;
 	}
 
-	private static function redirect( $page, $params = null, $doExit = false ) {
+	private static function redirect( $page, $params = [], $doExit = false ) {
 		$title = Title::newFromText( $page );
 		if ( is_null( $title ) ) {
 			$title = Title::newMainPage();
 		}
-		$url = $title->getFullURL();
-		if ( is_array( $params ) && count( $params ) > 0 ) {
-			foreach ( $params as $key => $value ) {
-				$url = wfAppendQuery( $url, $key . '=' . $value );
-			}
-		}
+		$url = $title->getFullURL( $params );
 		header( 'Location: ' . $url );
 		if ( $doExit ) {
 			exit;
