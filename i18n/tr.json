@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"BaRaN6161 TURK"
+		]
+	},
+	"openidconnect-desc": "PluIDableAuth ile birlikte OpenID Connect kullanarak kimlik doğrulama sağlar",
+	"selectopenidconnectissuer": "Kimlik Doğrulayıcıyı Seçin"
+}
