@@ -22,9 +22,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-use \MediaWiki\Session\SessionManager;
-use \MediaWiki\Auth\AuthManager;
-use \Jumbojett\OpenIDConnectClient;
+use MediaWiki\Session\SessionManager;
+use MediaWiki\Auth\AuthManager;
+use Jumbojett\OpenIDConnectClient;
 
 class OpenIDConnect extends PluggableAuth {
 
