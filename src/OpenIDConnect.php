@@ -22,9 +22,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-use MediaWiki\Session\SessionManager;
-use MediaWiki\Auth\AuthManager;
 use Jumbojett\OpenIDConnectClient;
+use MediaWiki\Auth\AuthManager;
+use MediaWiki\Session\SessionManager;
 
 class OpenIDConnect extends PluggableAuth {
 
@@ -64,7 +64,7 @@ class OpenIDConnect extends PluggableAuth {
 
 			$iss = $session->get( 'iss' );
 
-			if ( !is_null( $iss ) ) {
+			if ( $iss !== null ) {
 
 				if ( isset( $_REQUEST['code'] ) && isset( $_REQUEST['status'] ) ) {
 					$session->remove( 'iss' );
@@ -176,7 +176,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				list( $id, $username ) =
 					$this->findUser( $this->subject, $this->issuer );
-				if ( !is_null( $id ) ) {
+				if ( $id !== null ) {
 					wfDebugLog( 'OpenID Connect',
 						'Found user with matching subject and issuer.' . PHP_EOL );
 					return true;
@@ -189,7 +189,7 @@ class OpenIDConnect extends PluggableAuth {
 					wfDebugLog( 'OpenID Connect', 'Checking for email migration.' .
 						PHP_EOL );
 					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
-					if ( !is_null( $id ) ) {
+					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
 						wfDebugLog( 'OpenID Connect', 'Migrated user ' . $username .
 							' by email: ' . $email . '.' . PHP_EOL );
@@ -206,7 +206,7 @@ class OpenIDConnect extends PluggableAuth {
 					wfDebugLog( 'OpenID Connect', 'Checking for username migration.' .
 						PHP_EOL );
 					$id = $this->getMigratedIdByUserName( $preferred_username );
-					if ( !is_null( $id ) ) {
+					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
 						wfDebugLog( 'OpenID Connect', 'Migrated user by username: ' .
 							$preferred_username . '.' . PHP_EOL );
@@ -257,13 +257,13 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	public function saveExtraAttributes( $id ) {
 		$authManager = Authmanager::singleton();
-		if ( is_null( $this->subject ) ) {
+		if ( $this->subject === null ) {
 			$this->subject = $authManager->getAuthenticationSessionData(
 				self::OIDC_SUBJECT_SESSION_KEY );
 			$authManager->removeAuthenticationSessionData(
 				self::OIDC_SUBJECT_SESSION_KEY );
 		}
-		if ( is_null( $this->issuer ) ) {
+		if ( $this->issuer === null ) {
 			$this->issuer = $authManager->getAuthenticationSessionData(
 				self::OIDC_ISSUER_SESSION_KEY );
 			$authManager->removeAuthenticationSessionData(
@@ -343,7 +343,7 @@ class OpenIDConnect extends PluggableAuth {
 			return null;
 		}
 		$nt = Title::makeTitleSafe( NS_USER, $preferred_username );
-		if ( is_null( $nt ) ) {
+		if ( $nt === null ) {
 			return null;
 		}
 		return $preferred_username;
@@ -351,7 +351,7 @@ class OpenIDConnect extends PluggableAuth {
 
 	private static function getMigratedIdByUserName( $username ) {
 		$nt = Title::makeTitleSafe( NS_USER, $username );
-		if ( is_null( $nt ) ) {
+		if ( $nt === null ) {
 			wfDebugLog( 'OpenID Connect',
 				'Invalid preferred username for migration: ' . $username . '.' .
 				PHP_EOL );
@@ -416,16 +416,16 @@ class OpenIDConnect extends PluggableAuth {
 	}
 
 	private static function getAvailableUsername( $preferred_username ) {
-		if ( is_null( $preferred_username ) ) {
+		if ( $preferred_username === null ) {
 			$preferred_username = 'User';
 		}
 
-		if ( is_null( User::idFromName( $preferred_username ) ) ) {
+		if ( User::idFromName( $preferred_username ) === null ) {
 			return $preferred_username;
 		}
 
 		$count = 1;
-		while ( !is_null( User::idFromName( $preferred_username . $count ) ) ) {
+		while ( User::idFromName( $preferred_username . $count ) !== null ) {
 			$count++;
 		}
 		return $preferred_username . $count;
@@ -433,7 +433,7 @@ class OpenIDConnect extends PluggableAuth {
 
 	private static function redirect( $page, $params = [], $doExit = false ) {
 		$title = Title::newFromText( $page );
-		if ( is_null( $title ) ) {
+		if ( $title === null ) {
 			$title = Title::newMainPage();
 		}
 		$url = $title->getFullURL( $params );
