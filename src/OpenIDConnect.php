@@ -34,6 +34,9 @@ class OpenIDConnect extends PluggableAuth {
 
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
+	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
+
+	const OIDC_GROUP_PREFIX = 'oidc_';
 
 	/**
 	 * @since 1.0
@@ -178,6 +181,12 @@ class OpenIDConnect extends PluggableAuth {
 					', Email: ' . $email . ', Subject: ' . $this->subject .
 					', Issuer: ' . $this->issuer );
 
+				$authManager = self::getAuthManager();
+				$authManager->setAuthenticationSessionData(
+					self::OIDC_ACCESSTOKEN_SESSION_KEY,
+					$oidc->getAccessTokenPayload()
+				);
+
 				list( $id, $username ) =
 					$this->findUser( $this->subject, $this->issuer );
 				if ( $id !== null ) {
@@ -225,12 +234,7 @@ class OpenIDConnect extends PluggableAuth {
 				wfDebugLog( 'OpenID Connect', 'Available username: ' .
 					$username . PHP_EOL );
 
-				if ( method_exists( MediaWikiServices::class, 'getAuthManager' ) ) {
-					// MediaWiki 1.35+
-					$authManager = MediaWikiServices::getInstance()->getAuthManager();
-				} else {
-					$authManager = AuthManager::singleton();
-				}
+				$authManager = self::getAuthManager();
 				$authManager->setAuthenticationSessionData(
 					self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
 				$authManager->setAuthenticationSessionData(
@@ -265,12 +269,7 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param int $id user id
 	 */
 	public function saveExtraAttributes( $id ) {
-		if ( method_exists( MediaWikiServices::class, 'getAuthManager' ) ) {
-			// MediaWiki 1.35+
-			$authManager = MediaWikiServices::getInstance()->getAuthManager();
-		} else {
-			$authManager = AuthManager::singleton();
-		}
+		$authManager = self::getAuthManager();
 		if ( $this->subject === null ) {
 			$this->subject = $authManager->getAuthenticationSessionData(
 				self::OIDC_SUBJECT_SESSION_KEY );
@@ -300,6 +299,96 @@ class OpenIDConnect extends PluggableAuth {
 			],
 			__METHOD__
 		);
+	}
+
+	/**
+	 * Will populate the groups for this user with configurable properties from the access token,
+	 * if one is available for the user.
+	 * Groups will be prefixed with 'oidc_' so the plugin is able to remove them if necessary, i.e.
+	 * when a different access token is used at some other time that contains different groups.
+	 *
+	 * @param User $user
+	 */
+	public static function populateGroups( User $user ) {
+		$old_oidc_groups = array_unique( array_filter( $user->getGroups(), static function ( $group ) {
+			return strpos( $group, self::OIDC_GROUP_PREFIX ) === 0;
+		} ) );
+		$new_oidc_groups = self::getOIDCGroups( $user );
+		foreach ( array_diff( $old_oidc_groups, $new_oidc_groups ) as $group_to_remove ) {
+			$user->removeGroup( $group_to_remove );
+		}
+		foreach ( array_diff( $new_oidc_groups, $old_oidc_groups ) as $group_to_add ) {
+			$user->addGroup( $group_to_add );
+		}
+	}
+
+	private static function getOIDCGroups( User $user ) {
+		$accessToken = self::getAccessToken( $user );
+		if ( $accessToken === null ) {
+			wfDebugLog( 'OpenID Connect', 'No token found for user' . PHP_EOL );
+			return [];
+		}
+		$config = self::issuerConfig( $accessToken->iss );
+		if ( $config === null ) {
+			wfDebugLog( 'OpenID Connect', "No config found for issuer '$accessToken->iss'" . PHP_EOL );
+			return [];
+		}
+		$new_oidc_groups = [];
+		foreach ( [ 'global_roles', 'wiki_roles' ] as $role_config ) {
+			$roleProperty = self::getNestedPropertyAsArray( $config, [ $role_config, 'property' ] );
+			if ( empty( $roleProperty ) ) {
+				continue;
+			}
+			$intermediatePrefixes = ( self::getNestedPropertyAsArray( $config, [ $role_config, 'prefix' ] )
+				?: [ '' ] );
+			foreach ( self::getNestedPropertyAsArray( $accessToken, $roleProperty ) as $role ) {
+				foreach ( $intermediatePrefixes as $prefix ) {
+					$new_oidc_groups[] = self::OIDC_GROUP_PREFIX . $prefix . $role;
+				}
+			}
+		}
+		$new_oidc_groups = array_unique( $new_oidc_groups );
+		return $new_oidc_groups;
+	}
+
+	private static function getNestedPropertyAsArray( $obj, array $properties ) {
+		if ( $obj === null ) {
+			return [];
+		}
+		while ( !empty( $properties ) ) {
+			$property = array_shift( $properties );
+			if ( is_array( $obj ) ) {
+				if ( !array_key_exists( $property, $obj ) ) {
+					return [];
+				}
+				$obj = $obj[$property];
+			} else {
+				if ( !property_exists( $obj, $property ) ) {
+					return [];
+				}
+				$obj = $obj->$property;
+			}
+		}
+		return is_array( $obj ) ? $obj : [ $obj ];
+	}
+
+	private static function issuerConfig( $iss ) {
+		return isset( $GLOBALS['wgOpenIDConnect_Config'][$iss] )
+			? $GLOBALS['wgOpenIDConnect_Config'][$iss]
+			: null;
+	}
+
+	private static function getAccessToken( User $user ) {
+		$accessToken = self::getAuthManager()
+			->getAuthenticationSessionData( self::OIDC_ACCESSTOKEN_SESSION_KEY );
+		if ( $accessToken === null ) {
+			return null;
+		}
+		list( $userId ) = self::findUser( $accessToken->sub, $accessToken->iss );
+		if ( $userId != $user->getId() ) {
+			return null;
+		}
+		return $accessToken;
 	}
 
 	private static function findUser( $subject, $issuer ) {
@@ -493,5 +582,16 @@ class OpenIDConnect extends PluggableAuth {
 			$updater->output(
 				'...user table does not have subject and issuer columns.' . PHP_EOL );
 		}
+	}
+
+	/**
+	 * Get the AuthManager instance in a way appropriate to the MediaWiki version
+	 * @return AuthManager
+	 */
+	private static function getAuthManager() {
+		// MediaWiki 1.35+ has the new method
+		return method_exists( MediaWikiServices::class, 'getAuthManager' )
+			? MediaWikiServices::getInstance()->getAuthManager()
+			: AuthManager::singleton();
 	}
 }

@@ -31,7 +31,8 @@
 			"maintenance/MigrateOIDCSubjectAndIssuerFromUserTable.php"
 	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates"
+		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates",
+		"PluggableAuthPopulateGroups": "OpenIDConnect::populateGroups"
 	},
 	"config": {
 		"OpenIDConnect_MigrateUsersByEmail": false,
