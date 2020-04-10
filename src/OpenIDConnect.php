@@ -327,7 +327,7 @@ class OpenIDConnect extends PluggableAuth {
 			$preferred_username = $oidc->requestUserInfo( 'preferred_username' );
 		}
 		if ( strlen( $preferred_username ) > 0 ) {
-			$preferred_username = $preferred_username;
+			// do nothing
 		} elseif ( strlen( $realname ) > 0 &&
 			$GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] === true ) {
 			$preferred_username = $realname;
@@ -346,7 +346,7 @@ class OpenIDConnect extends PluggableAuth {
 		if ( $nt === null ) {
 			return null;
 		}
-		return $preferred_username;
+		return $nt->getText();
 	}
 
 	private static function getMigratedIdByUserName( $username ) {
