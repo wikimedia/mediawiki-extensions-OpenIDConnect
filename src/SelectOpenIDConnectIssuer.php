@@ -40,9 +40,8 @@ class SelectOpenIDConnectIssuer extends UnlistedSpecialPage {
 				if ( strlen( $_REQUEST['query'] ) > 0 ) {
 					$url .= "?" . urldecode( $_REQUEST['query'] );
 				}
-				if ( session_id() == '' ) {
-					wfSetupSession();
-				}
+				$this->getRequest()->getSession()->persist();
+
 				$_SESSION['iss'] = $_REQUEST['iss'];
 				$GLOBALS['wgOut']->redirect( $url );
 			} else {
