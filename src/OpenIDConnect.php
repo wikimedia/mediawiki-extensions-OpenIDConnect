@@ -24,6 +24,7 @@
 
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\Session\SessionManager;
 
 class OpenIDConnect extends PluggableAuth {
@@ -221,7 +222,12 @@ class OpenIDConnect extends PluggableAuth {
 				wfDebugLog( 'OpenID Connect', 'Available username: ' .
 					$username . PHP_EOL );
 
-				$authManager = Authmanager::singleton();
+				if ( method_exists( MediaWikiServices::class, 'getAuthManager' ) ) {
+					// MediaWiki 1.35+
+					$authManager = MediaWikiServices::getInstance()->getAuthManager();
+				} else {
+					$authManager = AuthManager::singleton();
+				}
 				$authManager->setAuthenticationSessionData(
 					self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
 				$authManager->setAuthenticationSessionData(
@@ -256,7 +262,12 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param int $id user id
 	 */
 	public function saveExtraAttributes( $id ) {
-		$authManager = Authmanager::singleton();
+		if ( method_exists( MediaWikiServices::class, 'getAuthManager' ) ) {
+			// MediaWiki 1.35+
+			$authManager = MediaWikiServices::getInstance()->getAuthManager();
+		} else {
+			$authManager = AuthManager::singleton();
+		}
 		if ( $this->subject === null ) {
 			$this->subject = $authManager->getAuthenticationSessionData(
 				self::OIDC_SUBJECT_SESSION_KEY );
