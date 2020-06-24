@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"C933103"
+		]
+	},
+	"openidconnect-desc": "與PluggableAuth共同提供OpenID Connect認證",
+	"selectopenidconnectissuer": "選擇認證發行者"
+}
