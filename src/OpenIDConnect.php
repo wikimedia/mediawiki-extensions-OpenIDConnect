@@ -484,7 +484,7 @@ class OpenIDConnect extends PluggableAuth {
 				$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
 				$type = $updater->getDB()->getType();
 				$patch = $dir . $type . '/DropColumnsFromUserTable.sql';
-				$updater->modifyField( 'user', 'subject', $patch, true );
+				$updater->modifyExtensionField( 'user', 'subject', $patch );
 			}
 		} else {
 			$updater->output(
