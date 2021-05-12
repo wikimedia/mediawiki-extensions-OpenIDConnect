@@ -5,6 +5,6 @@
 		<exclude name="PSR12.Properties.ConstantVisibility.NotFound" />
 	</rule>
 	<file>.</file>
-	<arg name="extensions" value="php,php5,inc" />
-	<arg name="encoding" value="utf8" />
+	<arg name="extensions" value="php" />
+	<arg name="encoding" value="UTF-8" />
 </ruleset>
