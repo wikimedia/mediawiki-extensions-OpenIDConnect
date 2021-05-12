@@ -8,6 +8,7 @@
 	"descriptionmsg": "openidconnect-desc",
 	"type": "other",
 	"requires": {
+		"MediaWiki": ">= 1.27.0",
 		"extensions": {
 			"PluggableAuth": ">= 4.0"
 		}
