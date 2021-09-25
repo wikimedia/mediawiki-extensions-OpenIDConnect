@@ -161,6 +161,9 @@ class OpenIDConnect extends PluggableAuth {
 			if ( isset( $config['verifyPeer'] ) ) {
 				$oidc->setVerifyPeer( $config['verifyPeer'] );
 			}
+			if ( isset( $config['providerConfig'] ) ) {
+				$oidc->providerConfigParam( $config['providerConfig'] );
+			}
 			$redirectURL =
 				SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$oidc->setRedirectURL( $redirectURL );
