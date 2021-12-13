@@ -1,9 +1,10 @@
 {
 	"@metadata": {
 		"authors": [
-			"Esketti"
+			"Esketti",
+			"McDutchie"
 		]
 	},
-	"openidconnect-desc": "Zorgt voor verificatie met behulp van OpenID Connect in combinatie met PluggableAuth",
-	"selectopenidconnectissuer": "Selecteer Audenticatie Uitgevende Instelling"
+	"openidconnect-desc": "Biedt authenticatie met behulp van OpenID Connect in combinatie met PluggableAuth",
+	"selectopenidconnectissuer": "Selecteer authenticatie-uitgever"
 }
