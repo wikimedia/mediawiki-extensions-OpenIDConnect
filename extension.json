@@ -7,6 +7,7 @@
 	"url": "https://www.mediawiki.org/wiki/Extension:OpenID_Connect",
 	"descriptionmsg": "openidconnect-desc",
 	"type": "other",
+	"license-name": "MIT",
 	"requires": {
 		"MediaWiki": ">= 1.35.0",
 		"extensions": {
