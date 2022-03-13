@@ -14,8 +14,15 @@
 			"PluggableAuth": ">= 6.0"
 		}
 	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\OpenIDConnect\\": "includes/"
+	},
+	"AutoloadClasses": {
+		"MigrateOIDCSubjectAndIssuerFromUserTable":
+			"maintenance/MigrateOIDCSubjectAndIssuerFromUserTable.php"
+	},
 	"SpecialPages": {
-		"SelectOpenIDConnectIssuer": "SelectOpenIDConnectIssuer"
+		"SelectOpenIDConnectIssuer": "MediaWiki\\Extension\\OpenIDConnect\\SelectOpenIDConnectIssuer"
 	},
 	"MessagesDirs": {
 		"OpenIDConnect": [
@@ -23,17 +30,11 @@
 		]
 	},
 	"ExtensionMessagesFiles": {
-		"SelectOpenIDConnectIssuerAlias": "i18n/SelectOpenIDConnectIssuer.alias.php"
-	},
-	"AutoloadClasses": {
-		"OpenIDConnect": "src/OpenIDConnect.php",
-		"SelectOpenIDConnectIssuer": "src/SelectOpenIDConnectIssuer.php",
-		"MigrateOIDCSubjectAndIssuerFromUserTable":
-			"maintenance/MigrateOIDCSubjectAndIssuerFromUserTable.php"
+		"SelectOpenIDConnectIssuerAlias": "includes/SelectOpenIDConnectIssuer.alias.php"
 	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "OpenIDConnect::loadExtensionSchemaUpdates",
-		"PluggableAuthPopulateGroups": "OpenIDConnect::populateGroups"
+		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnect::loadExtensionSchemaUpdates",
+		"PluggableAuthPopulateGroups": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnect::populateGroups"
 	},
 	"config": {
 		"OpenIDConnect_MigrateUsersByEmail": {
@@ -58,7 +59,7 @@
 				"SelectOpenIDConnectIssuer"
 			],
 			"OpenIDConnect": {
-				"class": "OpenIDConnect",
+				"class": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnect",
 				"services": [
 					"AuthManager"
 				]

@@ -19,11 +19,19 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+namespace MediaWiki\Extension\OpenIDConnect;
+
+use DatabaseUpdater;
+use Exception;
+use FakeMaintenance;
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Session\SessionManager;
+use SpecialPage;
+use Title;
+use User;
 
 class OpenIDConnect extends PluggableAuth {
 
