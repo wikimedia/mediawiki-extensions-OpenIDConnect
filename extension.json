@@ -36,8 +36,8 @@
 		"SelectOpenIDConnectIssuerAlias": "includes/SelectOpenIDConnectIssuer.alias.php"
 	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnect::loadExtensionSchemaUpdates",
-		"PluggableAuthPopulateGroups": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnect::populateGroups"
+		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnectHooks::loadExtensionSchemaUpdates",
+		"PluggableAuthPopulateGroups": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnectHooks::populateGroups"
 	},
 	"config": {
 		"OpenIDConnect_MigrateUsersByEmail": {

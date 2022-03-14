@@ -21,11 +21,21 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
+use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
 return [
 	'OpenIDConnectStore' =>
 		static function ( MediaWikiServices $services ): OpenIDConnectStore {
 			return new OpenIDConnectStore();
+		},
+	'OpenIDConnectUserGroupManager' =>
+		static function ( MediaWikiServices $services ): OpenIDConnectUserGroupManager {
+			return new OpenIDConnectUserGroupManager(
+				$services->getAuthManager(),
+				$services->get( 'OpenIDConnectStore' ),
+				$services->getUserGroupManager(),
+				LoggerFactory::getInstance( 'OpenIDConnect' )
+			);
 		},
 ];

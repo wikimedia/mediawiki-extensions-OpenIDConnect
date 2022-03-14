@@ -21,13 +21,10 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
-use DatabaseUpdater;
 use Exception;
-use FakeMaintenance;
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Session\SessionManager;
 use SpecialPage;
 use Title;
@@ -58,8 +55,6 @@ class OpenIDConnect extends PluggableAuth {
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
-
-	const OIDC_GROUP_PREFIX = 'oidc_';
 
 	/**
 	 * @param AuthManager $authManager
@@ -309,97 +304,6 @@ class OpenIDConnect extends PluggableAuth {
 		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
 	}
 
-	/**
-	 * Will populate the groups for this user with configurable properties from the access token,
-	 * if one is available for the user.
-	 * Groups will be prefixed with 'oidc_' so the plugin is able to remove them if necessary, i.e.
-	 * when a different access token is used at some other time that contains different groups.
-	 *
-	 * @param User $user
-	 */
-	public static function populateGroups( User $user ) {
-		$old_oidc_groups = array_unique( array_filter( $user->getGroups(), static function ( $group ) {
-			return strpos( $group, self::OIDC_GROUP_PREFIX ) === 0;
-		} ) );
-		$new_oidc_groups = self::getOIDCGroups( $user );
-		foreach ( array_diff( $old_oidc_groups, $new_oidc_groups ) as $group_to_remove ) {
-			$user->removeGroup( $group_to_remove );
-		}
-		foreach ( array_diff( $new_oidc_groups, $old_oidc_groups ) as $group_to_add ) {
-			$user->addGroup( $group_to_add );
-		}
-	}
-
-	private static function getOIDCGroups( User $user ) {
-		$accessToken = self::getAccessToken( $user );
-		if ( $accessToken === null ) {
-			wfDebugLog( 'OpenID Connect', 'No token found for user' . PHP_EOL );
-			return [];
-		}
-		$config = self::issuerConfig( $accessToken->iss );
-		if ( $config === null ) {
-			wfDebugLog( 'OpenID Connect', "No config found for issuer '$accessToken->iss'" . PHP_EOL );
-			return [];
-		}
-		$new_oidc_groups = [];
-		foreach ( [ 'global_roles', 'wiki_roles' ] as $role_config ) {
-			$roleProperty = self::getNestedPropertyAsArray( $config, [ $role_config, 'property' ] );
-			if ( empty( $roleProperty ) ) {
-				continue;
-			}
-			$intermediatePrefixes = ( self::getNestedPropertyAsArray( $config, [ $role_config, 'prefix' ] )
-				?: [ '' ] );
-			foreach ( self::getNestedPropertyAsArray( $accessToken, $roleProperty ) as $role ) {
-				foreach ( $intermediatePrefixes as $prefix ) {
-					$new_oidc_groups[] = self::OIDC_GROUP_PREFIX . $prefix . $role;
-				}
-			}
-		}
-		$new_oidc_groups = array_unique( $new_oidc_groups );
-		return $new_oidc_groups;
-	}
-
-	private static function getNestedPropertyAsArray( $obj, array $properties ) {
-		if ( $obj === null ) {
-			return [];
-		}
-		while ( !empty( $properties ) ) {
-			$property = array_shift( $properties );
-			if ( is_array( $obj ) ) {
-				if ( !array_key_exists( $property, $obj ) ) {
-					return [];
-				}
-				$obj = $obj[$property];
-			} else {
-				if ( !property_exists( $obj, $property ) ) {
-					return [];
-				}
-				$obj = $obj->$property;
-			}
-		}
-		return is_array( $obj ) ? $obj : [ $obj ];
-	}
-
-	private static function issuerConfig( $iss ) {
-		return isset( $GLOBALS['wgOpenIDConnect_Config'][$iss] )
-			? $GLOBALS['wgOpenIDConnect_Config'][$iss]
-			: null;
-	}
-
-	private static function getAccessToken( User $user ) {
-		$accessToken = MediaWikiServices::getInstance()->getAuthManager()
-			->getAuthenticationSessionData( self::OIDC_ACCESSTOKEN_SESSION_KEY );
-		if ( $accessToken === null ) {
-			return null;
-		}
-		$store = MediaWikiServices::getInstance()->get( 'OpenIDConnectStore' );
-		list( $userId ) = $store->findUser( $accessToken->sub, $accessToken->iss );
-		if ( $userId != $user->getId() ) {
-			return null;
-		}
-		return $accessToken;
-	}
-
 	private static function getPreferredUsername( $config, $oidc, $realname,
 		$email ) {
 		if ( isset( $config['preferred_username'] ) ) {
@@ -473,44 +377,6 @@ class OpenIDConnect extends PluggableAuth {
 		header( 'Location: ' . $url );
 		if ( $doExit ) {
 			exit;
-		}
-	}
-
-	/**
-	 * Implements LoadExtensionSchemaUpdates hook.
-	 *
-	 * @param DatabaseUpdater $updater
-	 */
-	public static function loadExtensionSchemaUpdates( $updater ) {
-		$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
-		$type = $updater->getDB()->getType();
-		$updater->addExtensionTable( 'openid_connect',
-			$dir . $type . '/AddTable.sql' );
-		$updater->addExtensionUpdate( [ [ __CLASS__, 'migrateSubjectAndIssuer' ],
-			$updater ] );
-	}
-
-	/**
-	 * Migrate subject and issuer columns from user table to openid_connect
-	 * table.
-	 *
-	 * @param DatabaseUpdater $updater
-	 */
-	public static function migrateSubjectAndIssuer( $updater ) {
-		if ( $updater->getDB()->fieldExists( 'user', 'subject', __METHOD__ ) &&
-			$updater->getDB()->fieldExists( 'user', 'issuer', __METHOD__ ) ) {
-			$maintenance = new FakeMaintenance();
-			$task = $maintenance->runChild(
-				'MigrateOIDCSubjectAndIssuerFromUserTable' );
-			if ( $task->execute() ) {
-				$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
-				$type = $updater->getDB()->getType();
-				$patch = $dir . $type . '/DropColumnsFromUserTable.sql';
-				$updater->modifyExtensionField( 'user', 'subject', $patch );
-			}
-		} else {
-			$updater->output(
-				'...user table does not have subject and issuer columns.' . PHP_EOL );
 		}
 	}
 }
