@@ -41,6 +41,11 @@ class OpenIDConnect extends PluggableAuth {
 	private $authManager;
 
 	/**
+	 * @var OpenIDConnectStore
+	 */
+	private $openIDConnectStore;
+
+	/**
 	 * @var string
 	 */
 	private $subject;
@@ -58,11 +63,14 @@ class OpenIDConnect extends PluggableAuth {
 
 	/**
 	 * @param AuthManager $authManager
+	 * @param OpenIDConnectStore $openIDConnectStore
 	 */
 	public function __construct(
-		AuthManager $authManager
+		AuthManager $authManager,
+		OpenIDConnectStore $openIDConnectStore
 	) {
 		$this->authManager = $authManager;
+		$this->openIDConnectStore = $openIDConnectStore;
 	}
 
 	/**
@@ -215,7 +223,7 @@ class OpenIDConnect extends PluggableAuth {
 				);
 
 				list( $id, $username ) =
-					$this->findUser( $this->subject, $this->issuer );
+					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
 				if ( $id !== null ) {
 					$this->logger->debug( 'Found user with matching subject and issuer.' . PHP_EOL );
 					return true;
@@ -298,23 +306,7 @@ class OpenIDConnect extends PluggableAuth {
 			$this->authManager->removeAuthenticationSessionData(
 				self::OIDC_ISSUER_SESSION_KEY );
 		}
-		$dbw = wfGetDB( DB_MASTER );
-		$dbw->upsert(
-			'openid_connect',
-			[
-				'oidc_user' => $id,
-				'oidc_subject' => $this->subject,
-				'oidc_issuer' => $this->issuer
-			],
-			[
-				[ 'oidc_user' ]
-			],
-			[
-				'oidc_subject' => $this->subject,
-				'oidc_issuer' => $this->issuer
-			],
-			__METHOD__
-		);
+		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
 	}
 
 	/**
@@ -400,39 +392,12 @@ class OpenIDConnect extends PluggableAuth {
 		if ( $accessToken === null ) {
 			return null;
 		}
-		list( $userId ) = self::findUser( $accessToken->sub, $accessToken->iss );
+		$store = MediaWikiServices::getInstance()->get( 'OpenIDConnectStore' );
+		list( $userId ) = $store->findUser( $accessToken->sub, $accessToken->iss );
 		if ( $userId != $user->getId() ) {
 			return null;
 		}
 		return $accessToken;
-	}
-
-	private static function findUser( $subject, $issuer ) {
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id',
-				'user_name'
-			],
-			[
-				'oidc_subject' => $subject,
-				'oidc_issuer' => $issuer
-			],
-			__METHOD__,
-			[],
-			[
-				'openid_connect' => [ 'JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
-		if ( $row === false ) {
-			return [ null, null ];
-		} else {
-			return [ $row->user_id, $row->user_name ];
-		}
 	}
 
 	private static function getPreferredUsername( $config, $oidc, $realname,
@@ -475,60 +440,12 @@ class OpenIDConnect extends PluggableAuth {
 			return null;
 		}
 		$username = $nt->getText();
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id'
-			],
-			[
-				'user_name' => $username,
-				'oidc_user' => null
-			],
-			__METHOD__,
-			[],
-			[
-				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
-		if ( $row !== false ) {
-			return $row->user_id;
-		}
-		return null;
+		return $this->openIDConnectStore->getMigratedIdByUserName( $username );
 	}
 
 	private function getMigratedIdByEmail( $email ) {
 		$this->logger->debug( 'Matching user to email ' . $email . '.' . PHP_EOL );
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id',
-				'user_name',
-				'oidc_user'
-			],
-			[
-				'user_email' => $email
-			],
-			__METHOD__,
-			[
-				// if multiple matching accounts, use the oldest one
-				'ORDER BY' => 'user_registration'
-			],
-			[
-				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
-		if ( $row !== false && $row->oidc_user === null ) {
-			return [ $row->user_id, $row->user_name ];
-		}
-		return [ null, null ];
+		return $this->openIDConnectStore->getMigratedIdByEmail( $email );
 	}
 
 	private static function getAvailableUsername( $preferred_username ) {
