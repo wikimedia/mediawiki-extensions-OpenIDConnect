@@ -21,6 +21,7 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
+use Config;
 use Exception;
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
@@ -29,8 +30,14 @@ use MediaWiki\Session\SessionManager;
 use SpecialPage;
 use Title;
 use User;
+use Wikimedia\Assert\Assert;
 
 class OpenIDConnect extends PluggableAuth {
+
+	/**
+	 * @var Config
+	 */
+	private $mainConfig;
 
 	/**
 	 * @var AuthManager
@@ -43,6 +50,31 @@ class OpenIDConnect extends PluggableAuth {
 	private $openIDConnectStore;
 
 	/**
+	 * @var bool
+	 */
+	private $migrateUsersByEmail;
+
+	/**
+	 * @var bool
+	 */
+	private $migrateUsersByUserName;
+
+	/**
+	 * @var bool
+	 */
+	private $forceLogout;
+
+	/**
+	 * @var bool
+	 */
+	private $useRealNameAsUserName;
+
+	/**
+	 * @var bool
+	 */
+	private $useEmailNameAsUserName;
+
+	/**
 	 * @var string
 	 */
 	private $subject;
@@ -52,20 +84,44 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	private $issuer;
 
+	const OIDC_CONFIGID_SESSION_KEY = 'OpenIDConnectConfigId';
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
 
 	/**
+	 * @param Config $mainConfig
 	 * @param AuthManager $authManager
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 */
 	public function __construct(
+		Config $mainConfig,
 		AuthManager $authManager,
 		OpenIDConnectStore $openIDConnectStore
 	) {
+		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
 		$this->openIDConnectStore = $openIDConnectStore;
+	}
+
+	/**
+	 * @param string $configId
+	 * @param array|null $data
+	 * @return void
+	 */
+	public function init( string $configId, ?array $data ): void {
+		parent::init( $configId, $data );
+		Assert::precondition( $data !== null, 'data missing from config' );
+		$this->authManager->setAuthenticationSessionData( self::OIDC_CONFIGID_SESSION_KEY, $configId );
+		$this->migrateUsersByEmail =
+			$data['migrateUsersByEmail'] ?? $this->mainConfig->get( 'OpenIDConnect_MigrateUsersByEmail' );
+		$this->migrateUsersByUserName =
+			$data['migrateUsersByUserName'] ?? $this->mainConfig->get( 'OpenIDConnect_MigrateUsersByUserName' );
+		$this->forceLogout = $data['forceLogout'] ?? $this->mainConfig->get( 'OpenIDConnect_ForceLogout' );
+		$this->useRealNameAsUserName =
+			$data['useRealNameAsUserName'] ?? $this->mainConfig->get( 'OpenIDConnect_UseRealNameAsUserName' );
+		$this->useEmailNameAsUserName =
+			$data['useEmailNameAsUserName'] ?? $this->mainConfig->get( 'OpenIDConnect_UseEmailNameAsUserName' );
 	}
 
 	/**
@@ -90,91 +146,30 @@ class OpenIDConnect extends PluggableAuth {
 			return false;
 		}
 
-		if ( !isset( $GLOBALS['wgOpenIDConnect_Config'] ) ) {
-			$this->logger->debug( 'wgOpenIDConnect_Config not set' . PHP_EOL );
-			return false;
-		}
-
 		try {
-
-			$session = SessionManager::getGlobalSession();
-
-			$iss = $session->get( 'iss' );
-
-			if ( $iss !== null ) {
-
-				if ( isset( $_REQUEST['code'] ) && isset( $_REQUEST['status'] ) ) {
-					$session->remove( 'iss' );
-				}
-
-				if ( isset( $GLOBALS['wgOpenIDConnect_Config'][$iss] ) ) {
-
-					$config = $GLOBALS['wgOpenIDConnect_Config'][$iss];
-
-					if ( !isset( $config['clientID'] ) ||
-						!isset( $config['clientsecret'] ) ) {
-						$this->logger->debug( 'clientID or clientsecret not set for ' . $iss . '.' . PHP_EOL );
-						$params = [
-							'uri' => urlencode( $_SERVER['REQUEST_URI'] ),
-							'query' => urlencode( $_SERVER['QUERY_STRING'] )
-						];
-						self::redirect( 'Special:SelectOpenIDConnectIssuer',
-							$params, true );
-						return false;
-					}
-
-				} else {
-					$this->logger->debug( 'Issuer ' . $iss . ' does not exist in wgOpeIDConnect_Config.' . PHP_EOL );
-					return false;
-				}
-
-			} else {
-
-				$iss_count = count( $GLOBALS['wgOpenIDConnect_Config'] );
-
-				if ( $iss_count < 1 ) {
-					return false;
-				}
-
-				if ( $iss_count == 1 ) {
-
-					$iss = array_keys( $GLOBALS['wgOpenIDConnect_Config'] );
-					$iss = $iss[0];
-
-					$values = array_values( $GLOBALS['wgOpenIDConnect_Config'] );
-					$config = $values[0];
-
-					if ( !isset( $config['clientID'] ) ||
-						!isset( $config['clientsecret'] ) ) {
-						$this->logger->debug( 'clientID or clientsecret not set for ' . $iss . '.' . PHP_EOL );
-						return false;
-					}
-
-				} else {
-
-					$params = [
-						'uri' => urlencode( $_SERVER['REQUEST_URI'] ),
-						'query' => urlencode( $_SERVER['QUERY_STRING'] )
-					];
-					self::redirect( 'Special:SelectOpenIDConnectIssuer',
-						$params, true );
-					return false;
-				}
+			if ( !isset( $this->data['clientID'] ) ||
+				!isset( $this->data['clientsecret'] ) ||
+				!isset( $this->data['providerURL'] ) ) {
+				$this->logger->debug( 'clientID, clientsecret, or providerURL not set' . PHP_EOL );
+				return false;
 			}
 
-			$clientID = $config['clientID'];
-			$clientsecret = $config['clientsecret'];
+			$oidc = new OpenIDConnectClient(
+				$this->data['providerURL'],
+				$this->data['clientID'],
+				$this->data['clientsecret']
+			);
 
-			$oidc = new OpenIDConnectClient( $iss, $clientID, $clientsecret );
 			if ( isset( $_REQUEST['forcelogin'] ) ) {
 				$oidc->addAuthParam( [ 'prompt' => 'login' ] );
 			}
-			if ( isset( $config['authparam'] ) &&
-				is_array( $config['authparam'] ) ) {
-				$oidc->addAuthParam( $config['authparam'] );
+
+			if ( isset( $this->data['authparam'] ) && is_array( $this->data['authparam'] ) ) {
+				$oidc->addAuthParam( $this->data['authparam'] );
 			}
-			if ( isset( $config['scope'] ) ) {
-				$scope = $config['scope'];
+
+			if ( isset( $this->data['scope'] ) ) {
+				$scope = $this->data['scope'];
 				if ( is_array( $scope ) ) {
 					foreach ( $scope as $s ) {
 						$oidc->addScope( $s );
@@ -183,28 +178,37 @@ class OpenIDConnect extends PluggableAuth {
 					$oidc->addScope( $scope );
 				}
 			}
-			if ( isset( $config['proxy'] ) ) {
-				$oidc->setHttpProxy( $config['proxy'] );
+
+			if ( isset( $this->data['proxy'] ) ) {
+				$oidc->setHttpProxy( $this->data['proxy'] );
 			}
-			if ( isset( $config['verifyHost'] ) ) {
-				$oidc->setVerifyHost( $config['verifyHost'] );
+
+			if ( isset( $this->data['verifyHost'] ) ) {
+				$oidc->setVerifyHost( $this->data['verifyHost'] );
 			}
-			if ( isset( $config['verifyPeer'] ) ) {
-				$oidc->setVerifyPeer( $config['verifyPeer'] );
+
+			if ( isset( $this->data['verifyPeer'] ) ) {
+				$oidc->setVerifyPeer( $this->data['verifyPeer'] );
 			}
-			if ( isset( $config['providerConfig'] ) ) {
-				$oidc->providerConfigParam( $config['providerConfig'] );
+
+			if ( isset( $this->data['providerConfig'] ) ) {
+				$oidc->providerConfigParam( $this->data['providerConfig'] );
 			}
-			$redirectURL =
-				SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
+
+			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$oidc->setRedirectURL( $redirectURL );
 			$this->logger->debug( 'Redirect URL: ' . $redirectURL );
-			if ( $oidc->authenticate() ) {
 
+			if ( $oidc->authenticate() ) {
 				$realname = $oidc->requestUserInfo( 'name' );
 				$email = $oidc->requestUserInfo( 'email' );
+
 				$this->subject = $oidc->requestUserInfo( 'sub' );
+				$this->authManager->setAuthenticationSessionData( self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
+
 				$this->issuer = $oidc->getProviderURL();
+				$this->authManager->setAuthenticationSessionData( self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
+
 				$this->logger->debug(
 					'Real name: ' . $realname .
 					', Email: ' . $email .
@@ -226,7 +230,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				$this->logger->debug( 'No user found with matching subject and issuer.' . PHP_EOL );
 
-				if ( $GLOBALS['wgOpenIDConnect_MigrateUsersByEmail'] === true ) {
+				if ( $this->migrateUsersByEmail ) {
 					$this->logger->debug( 'Checking for email migration.' . PHP_EOL );
 					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
 					if ( $id !== null ) {
@@ -236,11 +240,10 @@ class OpenIDConnect extends PluggableAuth {
 					}
 				}
 
-				$preferred_username = $this->getPreferredUsername( $config, $oidc,
-					$realname, $email );
+				$preferred_username = $this->getPreferredUsername( $oidc, $realname, $email );
 				$this->logger->debug( 'Preferred username: ' . $preferred_username . PHP_EOL );
 
-				if ( $GLOBALS['wgOpenIDConnect_MigrateUsersByUserName'] === true ) {
+				if ( $this->migrateUsersByUserName ) {
 					$this->logger->debug( 'Checking for username migration.' . PHP_EOL );
 					$id = $this->getMigratedIdByUserName( $preferred_username );
 					if ( $id !== null ) {
@@ -251,21 +254,17 @@ class OpenIDConnect extends PluggableAuth {
 					}
 				}
 
-				$username = self::getAvailableUsername( $preferred_username );
+				$username = $this->getAvailableUsername( $preferred_username );
 
 				$this->logger->debug( 'Available username: ' . $username . PHP_EOL );
 
-				$this->authManager->setAuthenticationSessionData(
-					self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
-				$this->authManager->setAuthenticationSessionData(
-					self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 				return true;
 			}
 
 		} catch ( Exception $e ) {
 			$this->logger->debug( $e->__toString() . PHP_EOL );
 			$errorMessage = $e->__toString();
-			$session->clear();
+			SessionManager::getGlobalSession()->clear();
 		}
 		return false;
 	}
@@ -276,10 +275,10 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param User &$user
 	 */
 	public function deauthenticate( User &$user ): void {
-		if ( $GLOBALS['wgOpenIDConnect_ForceLogout'] === true ) {
+		if ( $this->forceLogout ) {
 			$returnto = 'Special:UserLogin';
 			$params = [ 'forcelogin' => 'true' ];
-			self::redirect( $returnto, $params );
+			$this->redirect( $returnto, $params );
 		}
 	}
 
@@ -290,37 +289,27 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	public function saveExtraAttributes( $id ): void {
 		if ( $this->subject === null ) {
-			$this->subject = $this->authManager->getAuthenticationSessionData(
-				self::OIDC_SUBJECT_SESSION_KEY );
-			$this->authManager->removeAuthenticationSessionData(
-				self::OIDC_SUBJECT_SESSION_KEY );
+			$this->subject = $this->authManager->getAuthenticationSessionData( self::OIDC_SUBJECT_SESSION_KEY );
 		}
 		if ( $this->issuer === null ) {
-			$this->issuer = $this->authManager->getAuthenticationSessionData(
-				self::OIDC_ISSUER_SESSION_KEY );
-			$this->authManager->removeAuthenticationSessionData(
-				self::OIDC_ISSUER_SESSION_KEY );
+			$this->issuer = $this->authManager->getAuthenticationSessionData( self::OIDC_ISSUER_SESSION_KEY );
 		}
 		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
 	}
 
-	private static function getPreferredUsername( $config, $oidc, $realname,
-		$email ) {
-		if ( isset( $config['preferred_username'] ) ) {
-			wfDebugLog( 'OpenID Connect', 'Using ' . $config['preferred_username'] .
-				' attribute for preferred username.' . PHP_EOL );
-			$preferred_username =
-				$oidc->requestUserInfo( $config['preferred_username'] );
+	private function getPreferredUsername( $oidc, $realname, $email ) {
+		if ( isset( $this->data['preferred_username'] ) ) {
+			$this->logger->debug( 'Using ' . $this->data['preferred_username'] . ' attribute for preferred username.'
+				. PHP_EOL );
+			$preferred_username = $oidc->requestUserInfo( $this->data['preferred_username'] );
 		} else {
 			$preferred_username = $oidc->requestUserInfo( 'preferred_username' );
 		}
 		if ( strlen( $preferred_username ) > 0 ) {
 			// do nothing
-		} elseif ( strlen( $realname ) > 0 &&
-			$GLOBALS['wgOpenIDConnect_UseRealNameAsUserName'] === true ) {
+		} elseif ( strlen( $realname ) > 0 && $this->useRealNameAsUserName ) {
 			$preferred_username = $realname;
-		} elseif ( strlen( $email ) > 0 &&
-			$GLOBALS['wgOpenIDConnect_UseEmailNameAsUserName'] === true ) {
+		} elseif ( strlen( $email ) > 0 && $this->useEmailNameAsUserName ) {
 			$pos = strpos( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
 				$preferred_username = substr( $email, 0, $pos );
@@ -352,7 +341,7 @@ class OpenIDConnect extends PluggableAuth {
 		return $this->openIDConnectStore->getMigratedIdByEmail( $email );
 	}
 
-	private static function getAvailableUsername( $preferred_username ) {
+	private function getAvailableUsername( $preferred_username ) {
 		if ( $preferred_username === null ) {
 			$preferred_username = 'User';
 		}
@@ -368,7 +357,7 @@ class OpenIDConnect extends PluggableAuth {
 		return $preferred_username . $count;
 	}
 
-	private static function redirect( $page, $params = [], $doExit = false ) {
+	private function redirect( $page, $params = [], $doExit = false ) {
 		$title = Title::newFromText( $page );
 		if ( $title === null ) {
 			$title = Title::newMainPage();

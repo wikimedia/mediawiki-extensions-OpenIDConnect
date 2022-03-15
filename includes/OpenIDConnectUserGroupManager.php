@@ -22,13 +22,23 @@
 namespace MediaWiki\Extension\OpenIDConnect;
 
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\Config\ServiceOptions;
 use MediaWiki\User\UserGroupManager;
 use Psr\Log\LoggerInterface;
 use User;
 
 class OpenIDConnectUserGroupManager {
 
+	public const CONSTRUCTOR_OPTIONS = [
+		'PluggableAuth_Config'
+	];
+
 	const OIDC_GROUP_PREFIX = 'oidc_';
+
+	/**
+	 * @var array
+	 */
+	private $pluggableAuthConfig;
 
 	/**
 	 * @var AuthManager
@@ -51,17 +61,21 @@ class OpenIDConnectUserGroupManager {
 	private $logger;
 
 	/**
+	 * @param ServiceOptions $options
 	 * @param AuthManager $authManager
 	 * @param OpenIDConnectStore $store
 	 * @param UserGroupManager $userGroupManager
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
+		ServiceOptions $options,
 		AuthManager $authManager,
 		OpenIDConnectStore $store,
 		UserGroupManager $userGroupManager,
 		LoggerInterface $logger
 	) {
+		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
+		$this->pluggableAuthConfig = $options->get( 'PluggableAuth_Config' );
 		$this->authManager = $authManager;
 		$this->store = $store;
 		$this->userGroupManager = $userGroupManager;
@@ -93,14 +107,14 @@ class OpenIDConnectUserGroupManager {
 	}
 
 	private function getOIDCGroups( User $user ): array {
-		$accessToken = $this->getAccessToken( $user );
-		if ( $accessToken === null ) {
-			$this->logger->debug( 'No token found for user' . PHP_EOL );
+		$config = $this->getIssuerConfig();
+		if ( $config === null ) {
+			$this->logger->debug( "No config found" . PHP_EOL );
 			return [];
 		}
-		$config = $this->issuerConfig( $accessToken->iss );
-		if ( $config === null ) {
-			$this->logger->debug( "No config found for issuer '$accessToken->iss'" . PHP_EOL );
+		$accessToken = $this->getAccessToken( $user );
+		if ( $accessToken === null ) {
+			$this->logger->debug( 'No access token found for user' . PHP_EOL );
 			return [];
 		}
 		$new_oidc_groups = [];
@@ -141,8 +155,12 @@ class OpenIDConnectUserGroupManager {
 		return is_array( $obj ) ? $obj : [ $obj ];
 	}
 
-	private function issuerConfig( $iss ) {
-		return $GLOBALS['wgOpenIDConnect_Config'][$iss] ?? null;
+	private function getIssuerConfig() {
+		$configId = $this->authManager->getAuthenticationSessionData( OpenIDConnect::OIDC_CONFIGID_SESSION_KEY );
+		if ( $configId !== null && isset( $this->pluggableAuthConfig[$configId] ) ) {
+			return $this->pluggableAuthConfig[$configId]['data'] ?? null;
+		}
+		return null;
 	}
 
 	private function getAccessToken( User $user ) {
