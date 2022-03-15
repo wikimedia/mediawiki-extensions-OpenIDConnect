@@ -287,7 +287,7 @@ class OpenIDConnect extends PluggableAuth {
 	 *
 	 * @param int $id user id
 	 */
-	public function saveExtraAttributes( $id ): void {
+	public function saveExtraAttributes( int $id ): void {
 		if ( $this->subject === null ) {
 			$this->subject = $this->authManager->getAuthenticationSessionData( self::OIDC_SUBJECT_SESSION_KEY );
 		}
@@ -297,7 +297,7 @@ class OpenIDConnect extends PluggableAuth {
 		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
 	}
 
-	private function getPreferredUsername( $oidc, $realname, $email ) {
+	private function getPreferredUsername( OpenIDConnectClient $oidc, ?string $realname, ?string $email ): ?string {
 		if ( isset( $this->data['preferred_username'] ) ) {
 			$this->logger->debug( 'Using ' . $this->data['preferred_username'] . ' attribute for preferred username.'
 				. PHP_EOL );
@@ -326,7 +326,7 @@ class OpenIDConnect extends PluggableAuth {
 		return $nt->getText();
 	}
 
-	private function getMigratedIdByUserName( $username ) {
+	private function getMigratedIdByUserName( string $username ): ?string {
 		$nt = Title::makeTitleSafe( NS_USER, $username );
 		if ( $nt === null ) {
 			$this->logger->debug( 'Invalid preferred username for migration: ' . $username . '.' . PHP_EOL );
@@ -336,12 +336,12 @@ class OpenIDConnect extends PluggableAuth {
 		return $this->openIDConnectStore->getMigratedIdByUserName( $username );
 	}
 
-	private function getMigratedIdByEmail( $email ) {
+	private function getMigratedIdByEmail( string $email ): array {
 		$this->logger->debug( 'Matching user to email ' . $email . '.' . PHP_EOL );
 		return $this->openIDConnectStore->getMigratedIdByEmail( $email );
 	}
 
-	private function getAvailableUsername( $preferred_username ) {
+	private function getAvailableUsername( ?string $preferred_username ): string {
 		if ( $preferred_username === null ) {
 			$preferred_username = 'User';
 		}
@@ -357,7 +357,7 @@ class OpenIDConnect extends PluggableAuth {
 		return $preferred_username . $count;
 	}
 
-	private function redirect( $page, $params = [], $doExit = false ) {
+	private function redirect( string $page, array $params = [], bool $doExit = false ): void {
 		$title = Title::newFromText( $page );
 		if ( $title === null ) {
 			$title = Title::newMainPage();
