@@ -230,7 +230,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				$this->logger->debug( 'No user found with matching subject and issuer.' . PHP_EOL );
 
-				if ( $this->migrateUsersByEmail ) {
+				if ( $this->migrateUsersByEmail && ( $email ?? '' ) !== '' ) {
 					$this->logger->debug( 'Checking for email migration.' . PHP_EOL );
 					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
 					if ( $id !== null ) {
@@ -307,9 +307,9 @@ class OpenIDConnect extends PluggableAuth {
 		}
 		if ( strlen( $preferred_username ) > 0 ) {
 			// do nothing
-		} elseif ( strlen( $realname ) > 0 && $this->useRealNameAsUserName ) {
+		} elseif ( $this->useRealNameAsUserName && ( $realname ?? '' ) !== '' ) {
 			$preferred_username = $realname;
-		} elseif ( strlen( $email ) > 0 && $this->useEmailNameAsUserName ) {
+		} elseif ( $this->useEmailNameAsUserName && ( $email ?? '' ) !== '' ) {
 			$pos = strpos( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
 				$preferred_username = substr( $email, 0, $pos );
