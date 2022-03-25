@@ -169,14 +169,16 @@ class OpenIDConnect extends PluggableAuth {
 			}
 
 			if ( isset( $this->data['scope'] ) ) {
-				$scope = $this->data['scope'];
-				if ( is_array( $scope ) ) {
-					foreach ( $scope as $s ) {
-						$oidc->addScope( $s );
-					}
+				if ( is_array( $this->data['scope'] ) ) {
+					$scopes = $this->data['scope'];
 				} else {
-					$oidc->addScope( $scope );
+					$scopes = explode( ' ', $this->data['scope'] );
 				}
+			} else {
+				$scopes = [ 'openid', 'profile', 'email' ];
+			}
+			foreach ( $scopes as $scope ) {
+				$oidc->addScope( $scope );
 			}
 
 			if ( isset( $this->data['proxy'] ) ) {
