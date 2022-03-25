@@ -84,7 +84,6 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	private $issuer;
 
-	const OIDC_CONFIGID_SESSION_KEY = 'OpenIDConnectConfigId';
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
@@ -112,7 +111,6 @@ class OpenIDConnect extends PluggableAuth {
 	public function init( string $configId, ?array $data ): void {
 		parent::init( $configId, $data );
 		Assert::precondition( $data !== null, 'data missing from config' );
-		$this->authManager->setAuthenticationSessionData( self::OIDC_CONFIGID_SESSION_KEY, $configId );
 		$this->migrateUsersByEmail =
 			$data['migrateUsersByEmail'] ?? $this->mainConfig->get( 'OpenIDConnect_MigrateUsersByEmail' );
 		$this->migrateUsersByUserName =

@@ -35,6 +35,7 @@ return [
 			return new OpenIDConnectUserGroupManager(
 				new ServiceOptions( OpenIDConnectUserGroupManager::CONSTRUCTOR_OPTIONS, $services->getMainConfig() ),
 				$services->getAuthManager(),
+				$services->get( 'PluggableAuthFactory' ),
 				$services->get( 'OpenIDConnectStore' ),
 				$services->getUserGroupManager(),
 				LoggerFactory::getInstance( 'OpenIDConnect' )
