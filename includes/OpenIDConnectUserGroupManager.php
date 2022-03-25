@@ -24,8 +24,8 @@ namespace MediaWiki\Extension\OpenIDConnect;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\User\UserGroupManager;
+use MediaWiki\User\UserIdentity;
 use Psr\Log\LoggerInterface;
-use User;
 
 class OpenIDConnectUserGroupManager {
 
@@ -88,9 +88,9 @@ class OpenIDConnectUserGroupManager {
 	 * Groups will be prefixed with 'oidc_' so the plugin is able to remove them if necessary, i.e.
 	 * when a different access token is used at some other time that contains different groups.
 	 *
-	 * @param User $user
+	 * @param UserIdentity $user
 	 */
-	public function populateGroups( User $user ) {
+	public function populateGroups( UserIdentity $user ) {
 		$old_oidc_groups = array_unique( array_filter(
 			$this->userGroupManager->getUserGroups( $user ),
 			static function ( $group ) {
@@ -106,7 +106,7 @@ class OpenIDConnectUserGroupManager {
 		}
 	}
 
-	private function getOIDCGroups( User $user ): array {
+	private function getOIDCGroups( UserIdentity $user ): array {
 		$config = $this->getIssuerConfig();
 		if ( $config === null ) {
 			$this->logger->debug( "No config found" . PHP_EOL );
@@ -163,7 +163,7 @@ class OpenIDConnectUserGroupManager {
 		return null;
 	}
 
-	private function getAccessToken( User $user ) {
+	private function getAccessToken( UserIdentity $user ) {
 		$accessToken = $this->authManager->getAuthenticationSessionData( OpenIDConnect::OIDC_ACCESSTOKEN_SESSION_KEY );
 		if ( $accessToken === null ) {
 			return null;

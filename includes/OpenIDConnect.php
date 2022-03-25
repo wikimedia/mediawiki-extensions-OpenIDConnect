@@ -27,6 +27,7 @@ use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\Session\SessionManager;
+use MediaWiki\User\UserIdentity;
 use SpecialPage;
 use Title;
 use User;
@@ -274,9 +275,9 @@ class OpenIDConnect extends PluggableAuth {
 	/**
 	 * @since 1.0
 	 *
-	 * @param User &$user
+	 * @param UserIdentity &$user
 	 */
-	public function deauthenticate( User &$user ): void {
+	public function deauthenticate( UserIdentity &$user ): void {
 		if ( $this->forceLogout ) {
 			$returnto = 'Special:UserLogin';
 			$params = [ 'forcelogin' => 'true' ];
