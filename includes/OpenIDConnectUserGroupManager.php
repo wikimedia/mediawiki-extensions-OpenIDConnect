@@ -23,6 +23,7 @@ namespace MediaWiki\Extension\OpenIDConnect;
 
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\PluggableAuth\PluggableAuthFactory;
 use MediaWiki\User\UserGroupManager;
 use Psr\Log\LoggerInterface;
 use User;
@@ -36,14 +37,14 @@ class OpenIDConnectUserGroupManager {
 	const OIDC_GROUP_PREFIX = 'oidc_';
 
 	/**
-	 * @var array
-	 */
-	private $pluggableAuthConfig;
-
-	/**
 	 * @var AuthManager
 	 */
 	private $authManager;
+
+	/**
+	 * @var PluggableAuthFactory
+	 */
+	private $pluggableAuthFactory;
 
 	/**
 	 * @var OpenIDConnectStore
@@ -63,6 +64,7 @@ class OpenIDConnectUserGroupManager {
 	/**
 	 * @param ServiceOptions $options
 	 * @param AuthManager $authManager
+	 * @param PluggableAuthFactory $pluggableAuthFactory
 	 * @param OpenIDConnectStore $store
 	 * @param UserGroupManager $userGroupManager
 	 * @param LoggerInterface $logger
@@ -70,13 +72,14 @@ class OpenIDConnectUserGroupManager {
 	public function __construct(
 		ServiceOptions $options,
 		AuthManager $authManager,
+		PluggableAuthFactory $pluggableAuthFactory,
 		OpenIDConnectStore $store,
 		UserGroupManager $userGroupManager,
 		LoggerInterface $logger
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
-		$this->pluggableAuthConfig = $options->get( 'PluggableAuth_Config' );
 		$this->authManager = $authManager;
+		$this->pluggableAuthFactory = $pluggableAuthFactory;
 		$this->store = $store;
 		$this->userGroupManager = $userGroupManager;
 		$this->logger = $logger;
@@ -156,9 +159,9 @@ class OpenIDConnectUserGroupManager {
 	}
 
 	private function getIssuerConfig() {
-		$configId = $this->authManager->getAuthenticationSessionData( OpenIDConnect::OIDC_CONFIGID_SESSION_KEY );
-		if ( $configId !== null && isset( $this->pluggableAuthConfig[$configId] ) ) {
-			return $this->pluggableAuthConfig[$configId]['data'] ?? null;
+		$config = $this->pluggableAuthFactory->getCurrentConfig();
+		if ( $config ) {
+			return $config['data'] ?? null;
 		}
 		return null;
 	}
