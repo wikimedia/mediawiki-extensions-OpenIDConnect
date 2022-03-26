@@ -29,9 +29,20 @@
 			"i18n"
 		]
 	},
+	"HookHandlers": {
+		"schema": {
+			"class": "MediaWiki\\Extension\\OpenIDConnect\\SchemaHooks"
+		},
+		"main": {
+			"class": "MediaWiki\\Extension\\OpenIDConnect\\MainHooks",
+			"services": [
+				"OpenIDConnectUserGroupManager"
+			]
+		}
+	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnectHooks::loadExtensionSchemaUpdates",
-		"PluggableAuthPopulateGroups": "MediaWiki\\Extension\\OpenIDConnect\\OpenIDConnectHooks::populateGroups"
+		"LoadExtensionSchemaUpdates": "schema",
+		"PluggableAuthPopulateGroups": "main"
 	},
 	"config": {
 		"OpenIDConnect_MigrateUsersByEmail": {
