@@ -1,0 +1,53 @@
+[
+	{
+		"name": "openid_connect",
+		"columns": [
+			{
+				"name": "oidc_user",
+				"comment": "User ID",
+				"type": "integer",
+				"options": {
+					"unsigned": true,
+					"notnull": true
+				}
+			},
+			{
+				"name": "oidc_subject",
+				"comment": "OpenID Connect subject",
+				"type": "blob",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "oidc_issuer",
+				"comment": "OpenID Connect issuer",
+				"type": "blob",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [
+			{
+				"name": "openid_connect_subject",
+				"columns": [
+					"oidc_subject",
+					"oidc_issuer"
+				],
+				"options": {
+					"lengths": {
+						"oidc_subject": 50,
+						"oidc_issuer": 50
+					}
+				},
+				"unique": false
+			}
+		],
+		"pk": [
+			"oidc_user"
+		]
+	}
+]

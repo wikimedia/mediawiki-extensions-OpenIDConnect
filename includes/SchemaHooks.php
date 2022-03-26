@@ -22,7 +22,6 @@
 namespace MediaWiki\Extension\OpenIDConnect;
 
 use DatabaseUpdater;
-use FakeMaintenance;
 use MediaWiki\Installer\Hook\LoadExtensionSchemaUpdatesHook;
 
 class SchemaHooks implements LoadExtensionSchemaUpdatesHook {
@@ -32,31 +31,7 @@ class SchemaHooks implements LoadExtensionSchemaUpdatesHook {
 	 * @param DatabaseUpdater $updater database updater
 	 */
 	public function onLoadExtensionSchemaUpdates( $updater ) {
-		$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
-		$type = $updater->getDB()->getType();
-		$updater->addExtensionTable( 'openid_connect', $dir . $type . '/AddTable.sql' );
-		$updater->addExtensionUpdate( [ [ __CLASS__, 'migrateSubjectAndIssuer' ], $updater ] );
-	}
-
-	/**
-	 * Migrate subject and issuer columns from user table to openid_connect
-	 * table.
-	 *
-	 * @param DatabaseUpdater $updater
-	 */
-	public static function migrateSubjectAndIssuer( DatabaseUpdater $updater ): void {
-		if ( $updater->getDB()->fieldExists( 'user', 'subject', __METHOD__ ) &&
-			$updater->getDB()->fieldExists( 'user', 'issuer', __METHOD__ ) ) {
-			$maintenance = new FakeMaintenance();
-			$task = $maintenance->runChild( 'MigrateOIDCSubjectAndIssuerFromUserTable' );
-			if ( $task->execute() ) {
-				$dir = $GLOBALS['wgExtensionDirectory'] . '/OpenIDConnect/sql/';
-				$type = $updater->getDB()->getType();
-				$patch = $dir . $type . '/DropColumnsFromUserTable.sql';
-				$updater->modifyExtensionField( 'user', 'subject', $patch );
-			}
-		} else {
-			$updater->output( '...user table does not have subject and issuer columns.' . PHP_EOL );
-		}
+		$dir = __DIR__ . '/../sql/' . $updater->getDB()->getType() . '/';
+		$updater->addExtensionTable( 'openid_connect', $dir . 'OpenIDConnect.sql' );
 	}
 }
