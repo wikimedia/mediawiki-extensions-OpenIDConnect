@@ -21,7 +21,6 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
-use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 
@@ -33,7 +32,6 @@ return [
 	'OpenIDConnectUserGroupManager' =>
 		static function ( MediaWikiServices $services ): OpenIDConnectUserGroupManager {
 			return new OpenIDConnectUserGroupManager(
-				new ServiceOptions( OpenIDConnectUserGroupManager::CONSTRUCTOR_OPTIONS, $services->getMainConfig() ),
 				$services->getAuthManager(),
 				$services->get( 'PluggableAuthFactory' ),
 				$services->get( 'OpenIDConnectStore' ),

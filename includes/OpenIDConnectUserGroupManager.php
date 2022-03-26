@@ -22,18 +22,12 @@
 namespace MediaWiki\Extension\OpenIDConnect;
 
 use MediaWiki\Auth\AuthManager;
-use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\PluggableAuth\PluggableAuthFactory;
 use MediaWiki\User\UserGroupManager;
 use MediaWiki\User\UserIdentity;
 use Psr\Log\LoggerInterface;
 
 class OpenIDConnectUserGroupManager {
-
-	public const CONSTRUCTOR_OPTIONS = [
-		'PluggableAuth_Config'
-	];
-
 	const OIDC_GROUP_PREFIX = 'oidc_';
 
 	/**
@@ -62,7 +56,6 @@ class OpenIDConnectUserGroupManager {
 	private $logger;
 
 	/**
-	 * @param ServiceOptions $options
 	 * @param AuthManager $authManager
 	 * @param PluggableAuthFactory $pluggableAuthFactory
 	 * @param OpenIDConnectStore $store
@@ -70,14 +63,12 @@ class OpenIDConnectUserGroupManager {
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
-		ServiceOptions $options,
 		AuthManager $authManager,
 		PluggableAuthFactory $pluggableAuthFactory,
 		OpenIDConnectStore $store,
 		UserGroupManager $userGroupManager,
 		LoggerInterface $logger
 	) {
-		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->authManager = $authManager;
 		$this->pluggableAuthFactory = $pluggableAuthFactory;
 		$this->store = $store;
