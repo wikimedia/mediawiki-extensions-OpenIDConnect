@@ -24,7 +24,7 @@ namespace MediaWiki\Extension\OpenIDConnect;
 use DatabaseUpdater;
 use FakeMaintenance;
 use MediaWiki\MediaWikiServices;
-use User;
+use MediaWiki\User\UserIdentity;
 
 class OpenIDConnectHooks {
 	/**
@@ -67,9 +67,9 @@ class OpenIDConnectHooks {
 	 * Groups will be prefixed with 'oidc_' so the plugin is able to remove them if necessary, i.e.
 	 * when a different access token is used at some other time that contains different groups.
 	 *
-	 * @param User $user
+	 * @param UserIdentity $user
 	 */
-	public static function populateGroups( User $user ) {
+	public static function populateGroups( UserIdentity $user ) {
 		MediaWikiServices::getInstance()->get( 'OpenIDConnectUserGroupManager' )->populateGroups( $user );
 	}
 }
