@@ -17,10 +17,6 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\OpenIDConnect\\": "includes/"
 	},
-	"AutoloadClasses": {
-		"MigrateOIDCSubjectAndIssuerFromUserTable":
-			"maintenance/MigrateOIDCSubjectAndIssuerFromUserTable.php"
-	},
 	"ServiceWiringFiles": [
 		"includes/ServiceWiring.php"
 	],
