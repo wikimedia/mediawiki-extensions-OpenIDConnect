@@ -85,6 +85,12 @@ class OpenIDConnectUserGroupManager {
 	 * @param UserIdentity $user
 	 */
 	public function populateGroups( UserIdentity $user ) {
+		$currentPlugin = $this->pluggableAuthFactory->getInstance();
+		if ( !( $currentPlugin instanceof OpenIDConnect ) ) {
+			// We can only sync groups in the context of a OpenID Connect authentication flow,
+			// not for arbitrary other plugins
+			return;
+		}
 		$old_oidc_groups = array_unique( array_filter(
 			$this->userGroupManager->getUserGroups( $user ),
 			static function ( $group ) {
