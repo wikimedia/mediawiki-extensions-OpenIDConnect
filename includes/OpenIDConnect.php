@@ -63,6 +63,11 @@ class OpenIDConnect extends PluggableAuth {
 	private $titleFactory;
 
 	/**
+	 * @var OpenIDConnectUserGroupManager
+	 */
+	private $userGroupManager;
+
+	/**
 	 * @var bool
 	 */
 	private $migrateUsersByEmail;
@@ -114,19 +119,22 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
+	 * @param OpenIDConnectUserGroupManager $userGroupManager
 	 */
 	public function __construct(
 		Config $mainConfig,
 		AuthManager $authManager,
 		UserIdentityLookup $userIdentityLookup,
 		OpenIDConnectStore $openIDConnectStore,
-		TitleFactory $titleFactory
+		TitleFactory $titleFactory,
+		OpenIDConnectUserGroupManager $userGroupManager
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
+		$this->userGroupManager = $userGroupManager;
 	}
 
 	/**
@@ -307,6 +315,14 @@ class OpenIDConnect extends PluggableAuth {
 			$oidc = $this->getClient();
 			$oidc->signOut( $idToken, $title->getFullURL() );
 		}
+	}
+
+	/**
+	 * @param UserIdentity $user
+	 * @since 7.0
+	 */
+	public function populateGroups( UserIdentity $user ): void {
+		$this->userGroupManager->populateGroups( $user );
 	}
 
 	/**
