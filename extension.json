@@ -28,17 +28,10 @@
 	"HookHandlers": {
 		"schema": {
 			"class": "MediaWiki\\Extension\\OpenIDConnect\\SchemaHooks"
-		},
-		"main": {
-			"class": "MediaWiki\\Extension\\OpenIDConnect\\MainHooks",
-			"services": [
-				"OpenIDConnectUserGroupManager"
-			]
 		}
 	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "schema",
-		"PluggableAuthPopulateGroups": "main"
+		"LoadExtensionSchemaUpdates": "schema"
 	},
 	"config": {
 		"OpenIDConnect_MigrateUsersByEmail": {
@@ -69,7 +62,8 @@
 					"AuthManager",
 					"UserIdentityLookup",
 					"OpenIDConnectStore",
-					"TitleFactory"
+					"TitleFactory",
+					"OpenIDConnectUserGroupManager"
 				]
 			}
 		}
