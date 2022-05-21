@@ -51,6 +51,9 @@
 		},
 		"OpenIDConnect_UseEmailNameAsUserName": {
 			"value": false
+		},
+		"OpenIDConnect_GroupAttributes": {
+			"value": []
 		}
 	},
 	"attributes": {
@@ -62,8 +65,7 @@
 					"AuthManager",
 					"UserIdentityLookup",
 					"OpenIDConnectStore",
-					"TitleFactory",
-					"OpenIDConnectUserGroupManager"
+					"TitleFactory"
 				]
 			}
 		}
