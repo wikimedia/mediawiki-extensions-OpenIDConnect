@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "6.2",
+	"version": "7.0-dev",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -11,7 +11,7 @@
 	"requires": {
 		"MediaWiki": ">= 1.36.0",
 		"extensions": {
-			"PluggableAuth": ">= 6.0"
+			"PluggableAuth": ">= 7.0"
 		}
 	},
 	"AutoloadNamespaces": {
