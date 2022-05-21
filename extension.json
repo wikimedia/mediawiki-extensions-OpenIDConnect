@@ -47,6 +47,9 @@
 		"OpenIDConnect_MigrateUsersByUserName": {
 			"value": false
 		},
+		"OpenIDConnect_SingleLogout": {
+			"value": false
+		},
 		"OpenIDConnect_ForceReauth": {
 			"value": false
 		},
@@ -65,7 +68,8 @@
 					"MainConfig",
 					"AuthManager",
 					"UserIdentityLookup",
-					"OpenIDConnectStore"
+					"OpenIDConnectStore",
+					"TitleFactory"
 				]
 			}
 		}
