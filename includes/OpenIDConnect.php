@@ -30,7 +30,6 @@ use MediaWiki\Session\SessionManager;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use SpecialPage;
-use stdClass;
 use Title;
 use TitleFactory;
 use Wikimedia\Assert\Assert;
@@ -61,11 +60,6 @@ class OpenIDConnect extends PluggableAuth {
 	 * @var TitleFactory
 	 */
 	private $titleFactory;
-
-	/**
-	 * @var OpenIDConnectUserGroupManager
-	 */
-	private $userGroupManager;
 
 	/**
 	 * @var bool
@@ -111,6 +105,7 @@ class OpenIDConnect extends PluggableAuth {
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
 	const OIDC_IDTOKEN_SESSION_KEY = 'OpenIDConnectIdToken';
+	const OIDC_IDTOKENPAYLOAD_SESSION_KEY = 'OpenIDConnectIdTokenPayload';
 	const OIDC_REFRESHTOKEN_SESSION_KEY = 'OpenIDConnectRefreshToken';
 
 	/**
@@ -119,22 +114,19 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
-	 * @param OpenIDConnectUserGroupManager $userGroupManager
 	 */
 	public function __construct(
 		Config $mainConfig,
 		AuthManager $authManager,
 		UserIdentityLookup $userIdentityLookup,
 		OpenIDConnectStore $openIDConnectStore,
-		TitleFactory $titleFactory,
-		OpenIDConnectUserGroupManager $userGroupManager
+		TitleFactory $titleFactory
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
-		$this->userGroupManager = $userGroupManager;
 	}
 
 	/**
@@ -245,8 +237,9 @@ class OpenIDConnect extends PluggableAuth {
 					', Issuer: ' . $this->issuer
 				);
 
-				$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $oidc->getAccessTokenPayload() );
+				$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, (array)$oidc->getAccessTokenPayload() );
 				$this->setSessionSecret( self::OIDC_IDTOKEN_SESSION_KEY, $oidc->getIdToken() );
+				$this->setSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY, (array)$oidc->getIdTokenPayload() );
 				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $oidc->getRefreshToken() );
 
 				list( $id, $username ) =
@@ -319,10 +312,14 @@ class OpenIDConnect extends PluggableAuth {
 
 	/**
 	 * @param UserIdentity $user
+	 * @return array
 	 * @since 7.0
 	 */
-	public function populateGroups( UserIdentity $user ): void {
-		$this->userGroupManager->populateGroups( $user );
+	public function getAttributes( UserIdentity $user ): array {
+		return array_merge(
+			$this->getSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY ),
+			$this->getAccessToken()
+		);
 	}
 
 	/**
@@ -423,12 +420,12 @@ class OpenIDConnect extends PluggableAuth {
 	}
 
 	/**
-	 * @return stdClass|null
+	 * @return array|null
 	 */
-	public function getAccessToken(): ?stdClass {
+	public function getAccessToken(): ?array {
 		$accessToken = $this->getSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY );
-		if ( $accessToken && isset( $accessToken->exp ) && ( gettype( $accessToken->exp ) === 'integer' ) &&
-			( $accessToken->exp >= time() - 300 ) ) {
+		if ( $accessToken && isset( $accessToken['exp'] ) && ( gettype( $accessToken['exp'] ) === 'integer' ) &&
+			( $accessToken['exp'] >= time() - 300 ) ) {
 			return $accessToken;
 		}
 		$refreshToken = $this->getSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY );
@@ -438,7 +435,7 @@ class OpenIDConnect extends PluggableAuth {
 			if ( isset( $json->refresh_token ) ) {
 				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $json->refresh_token );
 			}
-			$accessToken = $client->getAccessTokenPayload();
+			$accessToken = (array)$client->getAccessTokenPayload();
 			$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $accessToken );
 			return $accessToken;
 		}
