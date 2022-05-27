@@ -68,7 +68,7 @@ class OpenIDConnect extends PluggableAuth {
 	/**
 	 * @var bool
 	 */
-	private $forceLogout;
+	private $forceReauth;
 
 	/**
 	 * @var bool
@@ -124,7 +124,7 @@ class OpenIDConnect extends PluggableAuth {
 			$data['migrateUsersByEmail'] ?? $this->mainConfig->get( 'OpenIDConnect_MigrateUsersByEmail' );
 		$this->migrateUsersByUserName =
 			$data['migrateUsersByUserName'] ?? $this->mainConfig->get( 'OpenIDConnect_MigrateUsersByUserName' );
-		$this->forceLogout = $data['forceLogout'] ?? $this->mainConfig->get( 'OpenIDConnect_ForceLogout' );
+		$this->forceReauth = $data['forceReauth'] ?? $this->mainConfig->get( 'OpenIDConnect_ForceReauth' );
 		$this->useRealNameAsUserName =
 			$data['useRealNameAsUserName'] ?? $this->mainConfig->get( 'OpenIDConnect_UseRealNameAsUserName' );
 		$this->useEmailNameAsUserName =
@@ -167,7 +167,7 @@ class OpenIDConnect extends PluggableAuth {
 				$this->data['clientsecret']
 			);
 
-			if ( isset( $_REQUEST['forcelogin'] ) ) {
+			if ( $this->forceReauth ) {
 				$oidc->addAuthParam( [ 'prompt' => 'login' ] );
 			}
 
@@ -284,11 +284,6 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param UserIdentity &$user
 	 */
 	public function deauthenticate( UserIdentity &$user ): void {
-		if ( $this->forceLogout ) {
-			$returnto = 'Special:UserLogin';
-			$params = [ 'forcelogin' => 'true' ];
-			$this->redirect( $returnto, $params );
-		}
 	}
 
 	/**
@@ -367,17 +362,5 @@ class OpenIDConnect extends PluggableAuth {
 			$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
 		}
 		return $preferred_username . $count;
-	}
-
-	private function redirect( string $page, array $params = [], bool $doExit = false ): void {
-		$title = Title::newFromText( $page );
-		if ( $title === null ) {
-			$title = Title::newMainPage();
-		}
-		$url = $title->getFullURL( $params );
-		header( 'Location: ' . $url );
-		if ( $doExit ) {
-			exit;
-		}
 	}
 }
