@@ -21,7 +21,6 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
-use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\PluggableAuth\PluggableAuthFactory;
 use MediaWiki\User\UserGroupManager;
 use MediaWiki\User\UserIdentity;
@@ -31,19 +30,9 @@ class OpenIDConnectUserGroupManager {
 	const OIDC_GROUP_PREFIX = 'oidc_';
 
 	/**
-	 * @var AuthManager
-	 */
-	private $authManager;
-
-	/**
 	 * @var PluggableAuthFactory
 	 */
 	private $pluggableAuthFactory;
-
-	/**
-	 * @var OpenIDConnectStore
-	 */
-	private $store;
 
 	/**
 	 * @var UserGroupManager
@@ -56,22 +45,16 @@ class OpenIDConnectUserGroupManager {
 	private $logger;
 
 	/**
-	 * @param AuthManager $authManager
 	 * @param PluggableAuthFactory $pluggableAuthFactory
-	 * @param OpenIDConnectStore $store
 	 * @param UserGroupManager $userGroupManager
 	 * @param LoggerInterface $logger
 	 */
 	public function __construct(
-		AuthManager $authManager,
 		PluggableAuthFactory $pluggableAuthFactory,
-		OpenIDConnectStore $store,
 		UserGroupManager $userGroupManager,
 		LoggerInterface $logger
 	) {
-		$this->authManager = $authManager;
 		$this->pluggableAuthFactory = $pluggableAuthFactory;
-		$this->store = $store;
 		$this->userGroupManager = $userGroupManager;
 		$this->logger = $logger;
 	}
@@ -91,13 +74,18 @@ class OpenIDConnectUserGroupManager {
 			// not for arbitrary other plugins
 			return;
 		}
+		$accessToken = $currentPlugin->getAccessToken();
+		if ( $accessToken === null ) {
+			$this->logger->debug( 'No access token found for user' . PHP_EOL );
+			return;
+		}
 		$old_oidc_groups = array_unique( array_filter(
 			$this->userGroupManager->getUserGroups( $user ),
 			static function ( $group ) {
 				return strpos( $group, self::OIDC_GROUP_PREFIX ) === 0;
 			}
 		) );
-		$new_oidc_groups = $this->getOIDCGroups( $user );
+		$new_oidc_groups = $this->getOIDCGroups( $user, $accessToken );
 		foreach ( array_diff( $old_oidc_groups, $new_oidc_groups ) as $group_to_remove ) {
 			$this->userGroupManager->removeUserFromGroup( $user, $group_to_remove );
 		}
@@ -106,15 +94,10 @@ class OpenIDConnectUserGroupManager {
 		}
 	}
 
-	private function getOIDCGroups( UserIdentity $user ): array {
+	private function getOIDCGroups( UserIdentity $user, $accessToken ): array {
 		$config = $this->getIssuerConfig();
 		if ( $config === null ) {
 			$this->logger->debug( "No config found" . PHP_EOL );
-			return [];
-		}
-		$accessToken = $this->getAccessToken( $user );
-		if ( $accessToken === null ) {
-			$this->logger->debug( 'No access token found for user' . PHP_EOL );
 			return [];
 		}
 		$new_oidc_groups = [];
@@ -161,17 +144,5 @@ class OpenIDConnectUserGroupManager {
 			return $config['data'] ?? null;
 		}
 		return null;
-	}
-
-	private function getAccessToken( UserIdentity $user ) {
-		$accessToken = $this->authManager->getAuthenticationSessionData( OpenIDConnect::OIDC_ACCESSTOKEN_SESSION_KEY );
-		if ( $accessToken === null ) {
-			return null;
-		}
-		list( $userId ) = $this->store->findUser( $accessToken->sub, $accessToken->iss );
-		if ( $userId != $user->getId() ) {
-			return null;
-		}
-		return $accessToken;
 	}
 }
