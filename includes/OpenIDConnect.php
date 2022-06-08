@@ -30,6 +30,7 @@ use MediaWiki\Session\SessionManager;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use SpecialPage;
+use stdClass;
 use Title;
 use TitleFactory;
 use Wikimedia\Assert\Assert;
@@ -105,6 +106,7 @@ class OpenIDConnect extends PluggableAuth {
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
 	const OIDC_IDTOKEN_SESSION_KEY = 'OpenIDConnectIdToken';
+	const OIDC_REFRESHTOKEN_SESSION_KEY = 'OpenIDConnectRefreshToken';
 
 	/**
 	 * @param Config $mainConfig
@@ -235,12 +237,9 @@ class OpenIDConnect extends PluggableAuth {
 					', Issuer: ' . $this->issuer
 				);
 
-				$this->authManager->setAuthenticationSessionData(
-					self::OIDC_ACCESSTOKEN_SESSION_KEY,
-					$oidc->getAccessTokenPayload()
-				);
-
+				$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $oidc->getAccessTokenPayload() );
 				$this->setSessionSecret( self::OIDC_IDTOKEN_SESSION_KEY, $oidc->getIdToken() );
+				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $oidc->getRefreshToken() );
 
 				list( $id, $username ) =
 					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
@@ -405,5 +404,28 @@ class OpenIDConnect extends PluggableAuth {
 			$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
 		}
 		return $preferred_username . $count;
+	}
+
+	/**
+	 * @return stdClass|null
+	 */
+	public function getAccessToken(): ?stdClass {
+		$accessToken = $this->getSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY );
+		if ( $accessToken && isset( $accessToken->exp ) && ( gettype( $accessToken->exp ) === 'integer' ) &&
+			( $accessToken->exp >= time() - 300 ) ) {
+			return $accessToken;
+		}
+		$refreshToken = $this->getSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY );
+		if ( $refreshToken ) {
+			$client = $this->getClient();
+			$json = $client->refreshToken( $refreshToken );
+			if ( isset( $json->refresh_token ) ) {
+				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $json->refresh_token );
+			}
+			$accessToken = $client->getAccessTokenPayload();
+			$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $accessToken );
+			return $accessToken;
+		}
+		return null;
 	}
 }

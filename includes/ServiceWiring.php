@@ -32,9 +32,7 @@ return [
 	'OpenIDConnectUserGroupManager' =>
 		static function ( MediaWikiServices $services ): OpenIDConnectUserGroupManager {
 			return new OpenIDConnectUserGroupManager(
-				$services->getAuthManager(),
 				$services->get( 'PluggableAuthFactory' ),
-				$services->get( 'OpenIDConnectStore' ),
 				$services->getUserGroupManager(),
 				LoggerFactory::getInstance( 'OpenIDConnect' )
 			);
