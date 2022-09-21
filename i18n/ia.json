@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"openidconnect-desc": "Forni authentication usante OpenID Connect in conjunction con PluggableAuth",
+	"selectopenidconnectissuer": "Selige emissor de authentication"
+}
