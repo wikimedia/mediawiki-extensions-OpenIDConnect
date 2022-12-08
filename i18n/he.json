@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Amire80"
+		]
+	},
+	"openidconnect-desc": "אספקת אימות באמצעות OpenID Connect בשילוב עם PluggableAuth",
+	"selectopenidconnectissuer": "בחירת מנפיק אימות"
+}
