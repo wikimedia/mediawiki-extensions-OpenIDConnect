@@ -28,9 +28,9 @@ use MediaWiki\Auth\AuthManager;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\Session\SessionManager;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\User\UserIdentityLookup;
 use SpecialPage;
 use Title;
-use User;
 use Wikimedia\Assert\Assert;
 
 class OpenIDConnect extends PluggableAuth {
@@ -44,6 +44,11 @@ class OpenIDConnect extends PluggableAuth {
 	 * @var AuthManager
 	 */
 	private $authManager;
+
+	/**
+	 * @var UserIdentityLookup
+	 */
+	private $userIdentityLookup;
 
 	/**
 	 * @var OpenIDConnectStore
@@ -92,15 +97,18 @@ class OpenIDConnect extends PluggableAuth {
 	/**
 	 * @param Config $mainConfig
 	 * @param AuthManager $authManager
+	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 */
 	public function __construct(
 		Config $mainConfig,
 		AuthManager $authManager,
+		UserIdentityLookup $userIdentityLookup,
 		OpenIDConnectStore $openIDConnectStore
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
+		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
 	}
 
@@ -347,13 +355,16 @@ class OpenIDConnect extends PluggableAuth {
 			$preferred_username = 'User';
 		}
 
-		if ( User::idFromName( $preferred_username ) === null ) {
+		$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username );
+		if ( !$userIdentity || !$userIdentity->isRegistered() ) {
 			return $preferred_username;
 		}
 
 		$count = 1;
-		while ( User::idFromName( $preferred_username . $count ) !== null ) {
+		$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
+		while ( $userIdentity && $userIdentity->isRegistered() ) {
 			$count++;
+			$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
 		}
 		return $preferred_username . $count;
 	}
