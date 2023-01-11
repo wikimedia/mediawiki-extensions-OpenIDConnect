@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Eleassar"
+		]
+	},
+	"openidconnect-desc": "Zagotavlja avtentikacijo z OpenID Connect v kombinaciji s PluggableAuth",
+	"selectopenidconnectissuer": "Izberite izdajatelja avtentikacije"
+}
