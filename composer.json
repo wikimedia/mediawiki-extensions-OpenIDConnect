@@ -33,5 +33,10 @@
 	},
 	"extra": {
 		"installer-name": "OpenIDConnect"
+	},
+	"config": {
+		"allow-plugins": {
+			"composer/installers": true
+		}
 	}
 }
