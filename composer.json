@@ -10,7 +10,7 @@
 		}
 	],
 	"require": {
-		"jumbojett/openid-connect-php": "0.9.4",
+		"jumbojett/openid-connect-php": "0.9.10",
 		"composer/installers": "~1.0"
 	},
 	"require-dev": {
