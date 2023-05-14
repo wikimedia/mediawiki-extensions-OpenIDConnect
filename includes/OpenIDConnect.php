@@ -279,9 +279,8 @@ class OpenIDConnect extends PluggableAuth {
 	}
 
 	/**
-	 * @since 1.0
-	 *
 	 * @param UserIdentity &$user
+	 * @since 1.0
 	 */
 	public function deauthenticate( UserIdentity &$user ): void {
 		if ( $this->forceLogout ) {
@@ -292,9 +291,8 @@ class OpenIDConnect extends PluggableAuth {
 	}
 
 	/**
-	 * @since 1.0
-	 *
 	 * @param int $id user id
+	 * @since 1.0
 	 */
 	public function saveExtraAttributes( int $id ): void {
 		if ( $this->subject === null ) {
