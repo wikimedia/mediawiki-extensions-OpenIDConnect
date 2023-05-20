@@ -305,6 +305,14 @@ class OpenIDConnect extends PluggableAuth {
 		);
 	}
 
+	private function setSessionSecret( $key, $value ) {
+		$this->authManager->getRequest()->getSession()->setSecret( $key, $value );
+	}
+
+	private function getSessionSecret( $key ) {
+		return $this->authManager->getRequest()->getSession()->getSecret( $key );
+	}
+
 	private function getPreferredUsername( OpenIDConnectClient $oidc, ?string $realname, ?string $email ): ?string {
 		if ( $this->config->has( 'preferred_username' ) ) {
 			$attributeName = $this->config->get( 'preferred_username' );
