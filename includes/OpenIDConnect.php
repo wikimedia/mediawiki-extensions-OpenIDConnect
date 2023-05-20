@@ -31,6 +31,7 @@ use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use SpecialPage;
 use Title;
+use TitleFactory;
 use Wikimedia\Assert\Assert;
 
 class OpenIDConnect extends PluggableAuth {
@@ -56,6 +57,11 @@ class OpenIDConnect extends PluggableAuth {
 	private $openIDConnectStore;
 
 	/**
+	 * @var TitleFactory
+	 */
+	private $titleFactory;
+
+	/**
 	 * @var bool
 	 */
 	private $migrateUsersByEmail;
@@ -64,6 +70,11 @@ class OpenIDConnect extends PluggableAuth {
 	 * @var bool
 	 */
 	private $migrateUsersByUserName;
+
+	/**
+	 * @var bool
+	 */
+	private $singleLogout;
 
 	/**
 	 * @var bool
@@ -93,23 +104,27 @@ class OpenIDConnect extends PluggableAuth {
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
+	const OIDC_IDTOKEN_SESSION_KEY = 'OpenIDConnectIdToken';
 
 	/**
 	 * @param Config $mainConfig
 	 * @param AuthManager $authManager
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
+	 * @param TitleFactory $titleFactory
 	 */
 	public function __construct(
 		Config $mainConfig,
 		AuthManager $authManager,
 		UserIdentityLookup $userIdentityLookup,
-		OpenIDConnectStore $openIDConnectStore
+		OpenIDConnectStore $openIDConnectStore,
+		TitleFactory $titleFactory
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
+		$this->titleFactory = $titleFactory;
 	}
 
 	/**
@@ -123,6 +138,7 @@ class OpenIDConnect extends PluggableAuth {
 		$this->migrateUsersByEmail = $this->getConfigValue( 'MigrateUsersByEmail' );
 		$this->migrateUsersByUserName = $this->getConfigValue( 'MigrateUsersByUserName' );
 		$this->forceReauth = $this->getConfigValue( 'ForceReauth' );
+		$this->singleLogout = $this->getConfigValue( 'SingleLogout' );
 		$this->useRealNameAsUserName = $this->getConfigValue( 'UseRealNameAsUserName' );
 		$this->useEmailNameAsUserName = $this->getConfigValue( 'UseEmailNameAsUserName' );
 	}
@@ -224,6 +240,8 @@ class OpenIDConnect extends PluggableAuth {
 					$oidc->getAccessTokenPayload()
 				);
 
+				$this->setSessionSecret( self::OIDC_IDTOKEN_SESSION_KEY, $oidc->getIdToken() );
+
 				list( $id, $username ) =
 					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
 				if ( $id !== null ) {
@@ -277,6 +295,19 @@ class OpenIDConnect extends PluggableAuth {
 	 * @since 1.0
 	 */
 	public function deauthenticate( UserIdentity &$user ): void {
+		if ( $this->singleLogout ) {
+			$idToken = $this->getSessionSecret( self::OIDC_IDTOKEN_SESSION_KEY );
+			$returnTo = $this->authManager->getRequest()->getVal( 'returnto' );
+			$title = null;
+			if ( $returnTo ) {
+				$title = $this->titleFactory->newFromText( $returnTo );
+			}
+			if ( !$title ) {
+				$title = $this->titleFactory->newMainPage();
+			}
+			$oidc = $this->getClient();
+			$oidc->signOut( $idToken, $title->getFullURL() );
+		}
 	}
 
 	/**
