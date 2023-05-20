@@ -159,18 +159,7 @@ class OpenIDConnect extends PluggableAuth {
 		}
 
 		try {
-			if ( !$this->config->has( 'clientID' ) ||
-				!$this->config->has( 'clientsecret' ) ||
-				!$this->config->has( 'providerURL' ) ) {
-				$this->logger->debug( 'clientID, clientsecret, or providerURL not set' . PHP_EOL );
-				return false;
-			}
-
-			$oidc = new OpenIDConnectClient(
-				$this->config->get( 'providerURL' ),
-				$this->config->get( 'clientID' ),
-				$this->config->get( 'clientsecret' )
-			);
+			$oidc = $this->getClient();
 
 			if ( $this->forceReauth ) {
 				$oidc->addAuthParam( [ 'prompt' => 'login' ] );
@@ -302,6 +291,18 @@ class OpenIDConnect extends PluggableAuth {
 			$this->issuer = $this->authManager->getAuthenticationSessionData( self::OIDC_ISSUER_SESSION_KEY );
 		}
 		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
+	}
+
+	private function getClient(): OpenIDConnectClient {
+		Assert::precondition( $this->config->has( 'clientID' ), 'clientID missing from config' );
+		Assert::precondition( $this->config->has( 'clientsecret' ), 'clientsecret missing from config' );
+		Assert::precondition( $this->config->has( 'providerURL' ), 'providerURL missing from config' );
+
+		return new OpenIDConnectClient(
+			$this->config->get( 'providerURL' ),
+			$this->config->get( 'clientID' ),
+			$this->config->get( 'clientsecret' )
+		);
 	}
 
 	private function getPreferredUsername( OpenIDConnectClient $oidc, ?string $realname, ?string $email ): ?string {
