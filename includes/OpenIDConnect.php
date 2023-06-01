@@ -337,6 +337,14 @@ class OpenIDConnect extends PluggableAuth {
 		$this->openIDConnectStore->saveExtraAttributes( $id, $this->subject, $this->issuer );
 	}
 
+	/**
+	 * @return bool
+	 * @since 7.0
+	 */
+	public function shouldOverrideDefaultLogout(): bool {
+		return $this->singleLogout;
+	}
+
 	private function getClient(): OpenIDConnectClient {
 		Assert::precondition( $this->getData()->has( 'clientID' ), 'clientID missing from config' );
 		Assert::precondition( $this->getData()->has( 'clientsecret' ), 'clientsecret missing from config' );
