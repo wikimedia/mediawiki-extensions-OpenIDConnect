@@ -96,8 +96,7 @@ class OpenIDConnectStore {
 				'user_id'
 			],
 			[
-				'user_name' => $username,
-				'oidc_user' => null
+				'user_name' => $username
 			],
 			__METHOD__,
 			[],
