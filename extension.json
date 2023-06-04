@@ -47,7 +47,7 @@
 		"OpenIDConnect_MigrateUsersByUserName": {
 			"value": false
 		},
-		"OpenIDConnect_ForceLogout": {
+		"OpenIDConnect_ForceReauth": {
 			"value": false
 		},
 		"OpenIDConnect_UseRealNameAsUserName": {
