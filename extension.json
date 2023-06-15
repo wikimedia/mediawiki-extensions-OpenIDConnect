@@ -51,9 +51,6 @@
 		},
 		"OpenIDConnect_UseEmailNameAsUserName": {
 			"value": false
-		},
-		"OpenIDConnect_GroupAttributes": {
-			"value": []
 		}
 	},
 	"attributes": {
