@@ -373,7 +373,7 @@ class OpenIDConnect extends PluggableAuth {
 		} else {
 			$preferred_username = $oidc->requestUserInfo( 'preferred_username' );
 		}
-		if ( strlen( $preferred_username ) > 0 ) {
+		if ( is_string( $preferred_username ) && strlen( $preferred_username ) > 0 ) {
 			// do nothing
 		} elseif ( $this->useRealNameAsUserName && ( $realname ?? '' ) !== '' ) {
 			$preferred_username = $realname;
