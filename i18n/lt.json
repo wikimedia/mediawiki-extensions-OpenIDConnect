@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Nokeoo"
+		]
+	},
+	"openidconnect-desc": "Autentifikavimas naudojant „OpenID Connect“ kartu su „PluggableAuth“."
+}
