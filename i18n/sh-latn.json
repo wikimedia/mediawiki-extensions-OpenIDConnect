@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Winston Sung"
+		]
+	},
+	"openidconnect-desc": "Omogućuje potvdu identiteta s OpenID Connect koja radi zajedno s PluggableAuth",
+	"selectopenidconnectissuer": "Izaberite izdatelja potvrde identiteta"
+}
