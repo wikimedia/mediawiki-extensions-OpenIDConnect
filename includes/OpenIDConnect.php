@@ -220,10 +220,10 @@ class OpenIDConnect extends PluggableAuth {
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
 
 			if ( $oidc->authenticate() ) {
-				$realname = $oidc->requestUserInfo( 'name' );
-				$email = $oidc->requestUserInfo( 'email' );
+				$realname = $this->getClaim( $oidc, 'name' );
+				$email = $this->getClaim( $oidc, 'email' );
 
-				$this->subject = $oidc->requestUserInfo( 'sub' );
+				$this->subject = $this->getClaim( $oidc, 'sub' );
 				$this->authManager->setAuthenticationSessionData( self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
 
 				$this->issuer = $oidc->getProviderURL();
@@ -369,9 +369,9 @@ class OpenIDConnect extends PluggableAuth {
 		if ( $this->getData()->has( 'preferred_username' ) ) {
 			$attributeName = $this->getData()->get( 'preferred_username' );
 			$this->getLogger()->debug( 'Using ' . $attributeName . ' attribute for preferred username.' . PHP_EOL );
-			$preferred_username = $oidc->requestUserInfo( $attributeName );
+			$preferred_username = $this->getClaim( $oidc, $attributeName );
 		} else {
-			$preferred_username = $oidc->requestUserInfo( 'preferred_username' );
+			$preferred_username = $this->getClaim( $oidc, 'preferred_username' );
 		}
 		if ( is_string( $preferred_username ) && strlen( $preferred_username ) > 0 ) {
 			// do nothing
@@ -449,5 +449,21 @@ class OpenIDConnect extends PluggableAuth {
 			return $accessToken;
 		}
 		return null;
+	}
+
+	/**
+	 * This function first tries to get a claim from the ID token. If not found it aks the user info endpoint.
+	 * The function shall be called from authenticate() only.
+	 *
+	 * @param OpenIDConnectClient $oidc OIDC client. Must be the same that was used to authenticate.
+	 * @param string $claimName The name of a claim.
+	 * @return string|null The claim value or null
+	 */
+	private function getClaim( $oidc, string $claimName ): ?string {
+		$value = $oidc->getVerifiedClaims( $claimName );
+		if ( $value ) {
+			return $value;
+		}
+		return $oidc->requestUserInfo( $claimName );
 	}
 }
