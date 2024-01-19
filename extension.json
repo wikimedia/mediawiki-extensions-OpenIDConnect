@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "8.2.1",
+	"version": "8.3.0",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -11,7 +11,7 @@
 	"requires": {
 		"MediaWiki": ">= 1.39.0",
 		"extensions": {
-			"PluggableAuth": ">= 7.0"
+			"PluggableAuth": ">= 7.4.0"
 		}
 	},
 	"AutoloadNamespaces": {
@@ -77,7 +77,8 @@
 					"UserNameUtils",
 					"OpenIDConnectStore",
 					"TitleFactory",
-					"GlobalIdGenerator"
+					"GlobalIdGenerator",
+					"UserFactory"
 				]
 			}
 		}

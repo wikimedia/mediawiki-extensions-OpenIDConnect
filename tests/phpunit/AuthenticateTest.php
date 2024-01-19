@@ -98,7 +98,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -344,7 +345,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -373,7 +375,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -390,7 +393,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -421,7 +425,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -438,7 +443,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -471,7 +477,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -500,7 +507,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -533,7 +541,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
-			$services->getGlobalIdGenerator()
+			$services->getGlobalIdGenerator(),
+			$services->getUserFactory()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
