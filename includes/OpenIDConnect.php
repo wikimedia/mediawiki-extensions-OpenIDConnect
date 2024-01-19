@@ -25,8 +25,14 @@ use Config;
 use Exception;
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\Extension\PluggableAuth\BackchannelLogoutAwarePlugin;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
+use MediaWiki\Rest\RequestInterface;
+use MediaWiki\Rest\ResponseInterface;
+use MediaWiki\Rest\StringStream;
 use MediaWiki\Session\SessionManager;
+use MediaWiki\Session\SessionManagerInterface;
+use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use MediaWiki\User\UserNameUtils;
@@ -35,7 +41,7 @@ use TitleFactory;
 use Wikimedia\Assert\Assert;
 use Wikimedia\UUID\GlobalIdGenerator;
 
-class OpenIDConnect extends PluggableAuth {
+class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugin {
 
 	/**
 	 * @var Config
@@ -76,6 +82,11 @@ class OpenIDConnect extends PluggableAuth {
 	 * @var GlobalIdGenerator
 	 */
 	private $globalIdGenerator;
+
+	/**
+	 * @var UserFactory
+	 */
+	private $userFactory;
 
 	/**
 	 * @var bool
@@ -153,6 +164,7 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
 	 * @param GlobalIdGenerator $globalIdGenerator
+	 * @param UserFactory $userFactory
 	 */
 	public function __construct(
 		Config $mainConfig,
@@ -162,7 +174,8 @@ class OpenIDConnect extends PluggableAuth {
 		UserNameUtils $userNameUtils,
 		OpenIDConnectStore $openIDConnectStore,
 		TitleFactory $titleFactory,
-		GlobalIdGenerator $globalIdGenerator
+		GlobalIdGenerator $globalIdGenerator,
+		UserFactory $userFactory
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
@@ -172,6 +185,7 @@ class OpenIDConnect extends PluggableAuth {
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
 		$this->globalIdGenerator = $globalIdGenerator;
+		$this->userFactory = $userFactory;
 	}
 
 	/**
@@ -211,15 +225,91 @@ class OpenIDConnect extends PluggableAuth {
 		$this->openIDConnectClient->setProviderURL(
 			$this->getData()->get( 'providerURL' )
 		);
+
 		$this->openIDConnectClient->setIssuer(
 			$this->getData()->get( 'providerURL' )
 		);
+
 		$this->openIDConnectClient->setClientID(
 			$this->getData()->get( 'clientID' )
 		);
+
 		$this->openIDConnectClient->setClientSecret(
 			$this->getData()->get( 'clientsecret' )
 		);
+
+		if ( $this->forceReauth ) {
+			$this->openIDConnectClient->addAuthParam( [ 'prompt' => 'login' ] );
+		}
+
+		if ( $this->getData()->has( 'authparam' ) && is_array( $this->getData()->get( 'authparam' ) ) ) {
+			$this->openIDConnectClient->addAuthParam( $this->getData()->get( 'authparam' ) );
+		}
+
+		if ( $this->getData()->has( 'scope' ) ) {
+			if ( is_array( $this->getData()->get( 'scope' ) ) ) {
+				$scopes = $this->getData()->get( 'scope' );
+			} else {
+				$scopes = explode( ' ', $this->getData()->get( 'scope' ) );
+			}
+		} else {
+			$scopes = [ 'openid', 'profile', 'email' ];
+		}
+		$this->openIDConnectClient->addScope( $scopes );
+
+		if ( $this->getData()->has( 'proxy' ) ) {
+			$this->openIDConnectClient->setHttpProxy( $this->getData()->get( 'proxy' ) );
+		}
+
+		if ( $this->getData()->has( 'verifyHost' ) ) {
+			$this->openIDConnectClient->setVerifyHost( $this->getData()->get( 'verifyHost' ) );
+		}
+
+		if ( $this->getData()->has( 'verifyPeer' ) ) {
+			$this->openIDConnectClient->setVerifyPeer( $this->getData()->get( 'verifyPeer' ) );
+		}
+
+		if ( $this->getData()->has( 'providerConfig' ) ) {
+			$this->openIDConnectClient->providerConfigParam( $this->getData()->get( 'providerConfig' ) );
+		}
+
+		if ( $this->getData()->has( 'issuerValidator' ) ) {
+			$issuerValidator = $this->getData()->get( 'issuerValidator' );
+			if ( is_callable( $issuerValidator ) ) {
+				$this->openIDConnectClient->setIssuerValidator( $issuerValidator );
+			}
+		}
+
+		if ( $this->getData()->has( 'wellKnownConfigParameters' ) ) {
+			$wellKnownConfigParameters = $this->getData()->get( 'wellKnownConfigParameters' );
+			if ( is_array( $wellKnownConfigParameters ) ) {
+				$this->openIDConnectClient->setWellKnownConfigParameters( $wellKnownConfigParameters );
+			}
+		}
+
+		if ( $this->getData()->has( 'codeChallengeMethod' ) ) {
+			$this->openIDConnectClient->setCodeChallengeMethod(
+				$this->getData()->get( 'codeChallengeMethod' )
+			);
+		}
+
+		if ( $this->getData()->has( 'authMethods' ) ) {
+			$authMethods = $this->getData()->get( 'authMethods' );
+			if ( is_array( $authMethods ) ) {
+				$this->openIDConnectClient->setTokenEndpointAuthMethodsSupported( $authMethods );
+			}
+		}
+
+		if ( $this->getData()->has( 'privateKeyJwtGenerator' ) ) {
+			$privateKeyJwtGenerator = $this->getData()->get( 'privateKeyJwtGenerator' );
+			if ( is_callable( $privateKeyJwtGenerator ) ) {
+				$this->openIDConnectClient->setPrivateKeyJwtGenerator( $privateKeyJwtGenerator );
+			}
+		}
+
+		$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
+		$this->openIDConnectClient->setRedirectURL( $redirectURL );
+		$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
 	}
 
 	/**
@@ -249,79 +339,6 @@ class OpenIDConnect extends PluggableAuth {
 		?string &$errorMessage
 	): bool {
 		try {
-			if ( $this->forceReauth ) {
-				$this->openIDConnectClient->addAuthParam( [ 'prompt' => 'login' ] );
-			}
-
-			if ( $this->getData()->has( 'authparam' ) && is_array( $this->getData()->get( 'authparam' ) ) ) {
-				$this->openIDConnectClient->addAuthParam( $this->getData()->get( 'authparam' ) );
-			}
-
-			if ( $this->getData()->has( 'scope' ) ) {
-				if ( is_array( $this->getData()->get( 'scope' ) ) ) {
-					$scopes = $this->getData()->get( 'scope' );
-				} else {
-					$scopes = explode( ' ', $this->getData()->get( 'scope' ) );
-				}
-			} else {
-				$scopes = [ 'openid', 'profile', 'email' ];
-			}
-			$this->openIDConnectClient->addScope( $scopes );
-
-			if ( $this->getData()->has( 'proxy' ) ) {
-				$this->openIDConnectClient->setHttpProxy( $this->getData()->get( 'proxy' ) );
-			}
-
-			if ( $this->getData()->has( 'verifyHost' ) ) {
-				$this->openIDConnectClient->setVerifyHost( $this->getData()->get( 'verifyHost' ) );
-			}
-
-			if ( $this->getData()->has( 'verifyPeer' ) ) {
-				$this->openIDConnectClient->setVerifyPeer( $this->getData()->get( 'verifyPeer' ) );
-			}
-
-			if ( $this->getData()->has( 'providerConfig' ) ) {
-				$this->openIDConnectClient->providerConfigParam( $this->getData()->get( 'providerConfig' ) );
-			}
-
-			if ( $this->getData()->has( 'issuerValidator' ) ) {
-				$issuerValidator = $this->getData()->get( 'issuerValidator' );
-				if ( is_callable( $issuerValidator ) ) {
-					$this->openIDConnectClient->setIssuerValidator( $issuerValidator );
-				}
-			}
-
-			if ( $this->getData()->has( 'wellKnownConfigParameters' ) ) {
-				$wellKnownConfigParameters = $this->getData()->get( 'wellKnownConfigParameters' );
-				if ( is_array( $wellKnownConfigParameters ) ) {
-					$this->openIDConnectClient->setWellKnownConfigParameters( $wellKnownConfigParameters );
-				}
-			}
-
-			if ( $this->getData()->has( 'codeChallengeMethod' ) ) {
-				$this->openIDConnectClient->setCodeChallengeMethod(
-					$this->getData()->get( 'codeChallengeMethod' )
-				);
-			}
-
-			if ( $this->getData()->has( 'authMethods' ) ) {
-				$authMethods = $this->getData()->get( 'authMethods' );
-				if ( is_array( $authMethods ) ) {
-					$this->openIDConnectClient->setTokenEndpointAuthMethodsSupported( $authMethods );
-				}
-			}
-
-			if ( $this->getData()->has( 'privateKeyJwtGenerator' ) ) {
-				$privateKeyJwtGenerator = $this->getData()->get( 'privateKeyJwtGenerator' );
-				if ( is_callable( $privateKeyJwtGenerator ) ) {
-					$this->openIDConnectClient->setPrivateKeyJwtGenerator( $privateKeyJwtGenerator );
-				}
-			}
-
-			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
-			$this->openIDConnectClient->setRedirectURL( $redirectURL );
-			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
-
 			if ( $this->openIDConnectClient->authenticate() ) {
 				$realname = $this->getClaim( 'name' );
 				$email = $this->getClaim( 'email' );
@@ -532,7 +549,7 @@ class OpenIDConnect extends PluggableAuth {
 		return $title->getText();
 	}
 
-	private function getMigratedIdByUserName( string $username ): ?string {
+	private function getMigratedIdByUserName( ?string $username ): ?string {
 		$title = $this->titleFactory->makeTitleSafe( NS_USER, $username );
 		if ( $title === null ) {
 			$this->getLogger()->debug( 'Invalid preferred username for migration: ' . $username );
@@ -619,5 +636,76 @@ class OpenIDConnect extends PluggableAuth {
 			return $value;
 		}
 		return $this->openIDConnectClient->requestUserInfo( $claimName );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function canHandle( RequestInterface $request ): bool {
+		try {
+			// If this plugin can not handle the request
+			// (e.g. because there is no `logout_token` at all)
+			// then an exception is thrown.
+			// The actual validity of the `logout_token` is checked
+			// in performBackchannelLogout()
+			$this->openIDConnectClient->verifyLogoutToken();
+		} catch ( Exception $e ) {
+			$this->getLogger()->debug( 'This plugin can not handle the request' );
+			$this->getLogger()->debug( $e->getMessage() );
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function performBackchannelLogout(
+		RequestInterface $request,
+		ResponseInterface $response,
+		SessionManagerInterface $sessionManager
+	): void {
+		$json = [];
+		try {
+			$oidc = $this->openIDConnectClient;
+			if ( $oidc->verifyLogoutToken() ) {
+				$subject = $oidc->getSubjectFromBackChannel();
+				$issuer = $oidc->getIssuer();
+				$this->getLogger()->debug( "'subject' from LogoutToken: $subject" );
+
+				[ $id, $username ] =
+					$this->openIDConnectStore->findUser( $subject, $issuer );
+				$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $username );
+				$user = $this->userFactory->newFromUserIdentity( $userIdentity );
+
+				$this->getLogger()->debug(
+					"Logging out: {username} ({userid})",
+					[
+						'username' => $user->getName(),
+						'userid' => $user->getId()
+					]
+				);
+				$sessionManager->invalidateSessionsForUser( $user );
+
+				$response->setStatus( 200 );
+			} else {
+				$response->setStatus( 400 );
+				$this->getLogger()->debug( 'Could not verify logout token' );
+				$json = [
+					'error' => 'not-verified',
+					'error_description' => 'The provided logout token could not be verified'
+				];
+			}
+		} catch ( Exception $ex ) {
+			$response->setStatus( 400 );
+			$message = $ex->getMessage();
+			$this->getLogger()->error( "Exception: $message" );
+			$json = [
+				'error' => $ex->getCode(),
+				'error_description' => $message
+			];
+		}
+
+		$response->setBody( new StringStream( json_encode( $json ) ) );
 	}
 }
