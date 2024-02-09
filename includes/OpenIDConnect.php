@@ -318,8 +318,8 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	public function getAttributes( UserIdentity $user ): array {
 		return array_merge(
-			$this->getSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY ),
-			$this->getAccessToken()
+			$this->getSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY ) ?: [],
+			$this->getAccessToken() ?: []
 		);
 	}
 
