@@ -215,6 +215,13 @@ class OpenIDConnect extends PluggableAuth {
 				$oidc->providerConfigParam( $this->getData()->get( 'providerConfig' ) );
 			}
 
+			if ( $this->getData()->has( 'issuerValidator' ) ) {
+				$issuerValidator = $this->getData()->get( 'issuerValidator' );
+				if ( is_callable( $issuerValidator ) ) {
+					$oidc->setIssuerValidator( $issuerValidator );
+				}
+			}
+
 			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$oidc->setRedirectURL( $redirectURL );
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
