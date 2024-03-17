@@ -248,7 +248,7 @@ class OpenIDConnect extends PluggableAuth {
 				$this->setSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY, (array)$oidc->getIdTokenPayload() );
 				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $oidc->getRefreshToken() );
 
-				list( $id, $username ) =
+				[ $id, $username ] =
 					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
 				if ( $id !== null ) {
 					$this->getLogger()->debug( 'Found user with matching subject and issuer.' . PHP_EOL );
@@ -259,7 +259,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				if ( $this->migrateUsersByEmail && ( $email ?? '' ) !== '' ) {
 					$this->getLogger()->debug( 'Checking for email migration.' . PHP_EOL );
-					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
+					[ $id, $username ] = $this->getMigratedIdByEmail( $email );
 					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
 						$this->getLogger()->debug( 'Migrated user ' . $username . ' by email: ' . $email . '.' .
