@@ -30,9 +30,9 @@ use MediaWiki\Session\SessionManager;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use SpecialPage;
-use Title;
 use TitleFactory;
 use Wikimedia\Assert\Assert;
+use Wikimedia\UUID\GlobalIdGenerator;
 
 class OpenIDConnect extends PluggableAuth {
 
@@ -67,6 +67,11 @@ class OpenIDConnect extends PluggableAuth {
 	private $titleFactory;
 
 	/**
+	 * @var GlobalIdGenerator
+	 */
+	private $globalIdGenerator;
+
+	/**
 	 * @var bool
 	 */
 	private $migrateUsersByEmail;
@@ -97,6 +102,26 @@ class OpenIDConnect extends PluggableAuth {
 	private $useEmailNameAsUserName;
 
 	/**
+	 * @var bool
+	 */
+	private $useRandomUsernames;
+
+	/**
+	 * @var callable
+	 */
+	private $realNameProcessor;
+
+	/**
+	 * @var callable
+	 */
+	private $emailProcessor;
+
+	/**
+	 * @var callable
+	 */
+	private $preferredUsernameProcessor;
+
+	/**
 	 * @var string
 	 */
 	private $subject;
@@ -120,6 +145,7 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
+	 * @param GlobalIdGenerator $globalIdGenerator
 	 */
 	public function __construct(
 		Config $mainConfig,
@@ -127,7 +153,8 @@ class OpenIDConnect extends PluggableAuth {
 		OpenIDConnectClient $openIDConnectClient,
 		UserIdentityLookup $userIdentityLookup,
 		OpenIDConnectStore $openIDConnectStore,
-		TitleFactory $titleFactory
+		TitleFactory $titleFactory,
+		GlobalIdGenerator $globalIdGenerator
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
@@ -135,6 +162,7 @@ class OpenIDConnect extends PluggableAuth {
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
+		$this->globalIdGenerator = $globalIdGenerator;
 	}
 
 	/**
@@ -150,6 +178,19 @@ class OpenIDConnect extends PluggableAuth {
 		$this->singleLogout = $this->getConfigValue( 'SingleLogout' );
 		$this->useRealNameAsUserName = $this->getConfigValue( 'UseRealNameAsUserName' );
 		$this->useEmailNameAsUserName = $this->getConfigValue( 'UseEmailNameAsUserName' );
+		$this->useRandomUsernames = $this->getConfigValue( 'UseRandomUsernames' );
+		$this->realNameProcessor = $this->getConfigValue( 'RealNameProcessor' );
+		if ( !is_callable( $this->realNameProcessor ) ) {
+			$this->realNameProcessor = null;
+		}
+		$this->emailProcessor = $this->getConfigValue( 'EmailProcessor' );
+		if ( !is_callable( $this->emailProcessor ) ) {
+			$this->emailProcessor = null;
+		}
+		$this->preferredUsernameProcessor = $this->getConfigValue( 'PreferredUsernameProcessor' );
+		if ( !is_callable( $this->preferredUsernameProcessor ) ) {
+			$this->preferredUsernameProcessor = null;
+		}
 		$this->initClient();
 	}
 
@@ -256,15 +297,19 @@ class OpenIDConnect extends PluggableAuth {
 				$this->authManager->setAuthenticationSessionData( self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 
 				$this->getLogger()->debug(
+					'Values retrieved from identity provider are ' .
 					'Real name: ' . $realname .
 					', Email: ' . $email .
 					', Subject: ' . $this->subject .
 					', Issuer: ' . $this->issuer
 				);
 
+				$accessTokenPayload = (array)$this->openIDConnectClient->getAccessTokenPayload();
+				$idTokenPayload = (array)$this->openIDConnectClient->getIdTokenPayload();
+				$attributes = array_merge( $idTokenPayload ?: [], $accessTokenPayload ?: [] );
 				$this->setSessionSecret(
 					self::OIDC_ACCESSTOKEN_SESSION_KEY,
-					(array)$this->openIDConnectClient->getAccessTokenPayload()
+					$accessTokenPayload
 				);
 				$this->setSessionSecret(
 					self::OIDC_IDTOKEN_SESSION_KEY,
@@ -272,57 +317,69 @@ class OpenIDConnect extends PluggableAuth {
 				);
 				$this->setSessionSecret(
 					self::OIDC_IDTOKENPAYLOAD_SESSION_KEY,
-					(array)$this->openIDConnectClient->getIdTokenPayload()
+					$idTokenPayload
 				);
 				$this->setSessionSecret(
 					self::OIDC_REFRESHTOKEN_SESSION_KEY,
 					$this->openIDConnectClient->getRefreshToken()
 				);
 
-				list( $id, $username ) =
+				if ( $this->realNameProcessor ) {
+					$realname = ( $this->realNameProcessor )( $realname, $attributes );
+					$this->getLogger()->debug( 'Real name after processing: ' . $realname );
+				}
+
+				if ( $this->emailProcessor ) {
+					$email = ( $this->emailProcessor )( $email, $attributes );
+					$this->getLogger()->debug( 'Email after processing: ' . $email );
+				}
+
+				[ $id, $username ] =
 					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
 				if ( $id !== null ) {
-					$this->getLogger()->debug( 'Found user with matching subject and issuer.' . PHP_EOL );
+					$this->getLogger()->debug( 'Found user with matching subject and issuer' );
 					return true;
 				}
 
-				$this->getLogger()->debug( 'No user found with matching subject and issuer.' . PHP_EOL );
+				$this->getLogger()->debug( 'No user found with matching subject and issuer' );
 
 				if ( $this->migrateUsersByEmail && ( $email ?? '' ) !== '' ) {
-					$this->getLogger()->debug( 'Checking for email migration.' . PHP_EOL );
-					list( $id, $username ) = $this->getMigratedIdByEmail( $email );
+					$this->getLogger()->debug( 'Checking for email migration' );
+					[ $id, $username ] = $this->getMigratedIdByEmail( $email );
 					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
-						$this->getLogger()->debug( 'Migrated user ' . $username . ' by email: ' . $email . '.' .
-							PHP_EOL );
+						$this->getLogger()->debug( 'Migrated user ' . $username . ' by email: ' . $email );
 						return true;
 					}
 				}
 
-				$preferred_username = $this->getPreferredUsername( $realname, $email );
-				$this->getLogger()->debug( 'Preferred username: ' . $preferred_username . PHP_EOL );
+				$preferred_username = $this->getPreferredUsername( $realname, $email, $attributes );
+				$this->getLogger()->debug( 'Preferred username: ' . $preferred_username );
 
 				if ( $this->migrateUsersByUserName ) {
-					$this->getLogger()->debug( 'Checking for username migration.' . PHP_EOL );
+					$this->getLogger()->debug( 'Checking for username migration' );
 					$id = $this->getMigratedIdByUserName( $preferred_username );
 					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
-						$this->getLogger()->debug( 'Migrated user by username: ' . $preferred_username . '.' .
-							PHP_EOL );
+						$this->getLogger()->debug( 'Migrated user by username: ' . $preferred_username );
 						$username = $preferred_username;
 						return true;
 					}
 				}
 
-				$username = $this->getAvailableUsername( $preferred_username );
+				if ( $this->useRandomUsernames ) {
+					$username = $this->getRandomUsername();
+				} else {
+					$username = $this->getAvailableUsername( $preferred_username );
+				}
 
-				$this->getLogger()->debug( 'Available username: ' . $username . PHP_EOL );
+				$this->getLogger()->debug( 'Using username: ' . $username );
 
 				return true;
 			}
 
 		} catch ( Exception $e ) {
-			$this->getLogger()->debug( $e->__toString() . PHP_EOL );
+			$this->getLogger()->debug( $e->__toString() );
 			$errorMessage = $e->__toString();
 			SessionManager::getGlobalSession()->clear();
 		}
@@ -390,18 +447,25 @@ class OpenIDConnect extends PluggableAuth {
 		return $this->authManager->getRequest()->getSession()->getSecret( $key );
 	}
 
-	private function getPreferredUsername( ?string $realname, ?string $email ): ?string {
+	private function getPreferredUsername(
+		?string $realname,
+		?string $email,
+		array $attributes
+	): ?string {
 		if ( $this->getData()->has( 'preferred_username' ) ) {
 			$attributeName = $this->getData()->get( 'preferred_username' );
-			$this->getLogger()->debug( 'Using ' . $attributeName . ' attribute for preferred username.' . PHP_EOL );
+			$this->getLogger()->debug( 'Using ' . $attributeName . ' attribute for preferred username' );
 			$preferred_username = $this->getClaim( $attributeName );
 		} else {
 			$preferred_username = $this->getClaim( 'preferred_username' );
 		}
+
 		if ( is_string( $preferred_username ) && strlen( $preferred_username ) > 0 ) {
+			$this->getLogger()->debug( 'Preferred username from identity provider: ' . $preferred_username );
 			// do nothing
 		} elseif ( $this->useRealNameAsUserName && ( $realname ?? '' ) !== '' ) {
 			$preferred_username = $realname;
+			$this->getLogger()->debug( 'Using real name for preferred username: ' . $preferred_username );
 		} elseif ( $this->useEmailNameAsUserName && ( $email ?? '' ) !== '' ) {
 			$pos = strpos( $email, '@' );
 			if ( $pos !== false && $pos > 0 ) {
@@ -409,28 +473,41 @@ class OpenIDConnect extends PluggableAuth {
 			} else {
 				$preferred_username = $email;
 			}
+			$this->getLogger()->debug( 'Using email for preferred username: ' . $preferred_username );
 		} else {
+			$preferred_username = null;
+			$this->getLogger()->debug( 'No preferred username' );
+		}
+
+		if ( $this->preferredUsernameProcessor ) {
+			$preferred_username = ( $this->preferredUsernameProcessor )( $preferred_username, $attributes );
+			$this->getLogger()->debug( 'Preferred username after processing: ' . $preferred_username );
+		}
+
+		if ( !is_string( $preferred_username ) || strlen( $preferred_username ) == 0 ) {
 			return null;
 		}
-		$nt = Title::makeTitleSafe( NS_USER, $preferred_username );
-		if ( $nt === null ) {
+
+		$title = $this->titleFactory->makeTitleSafe( NS_USER, $preferred_username );
+		if ( $title === null ) {
 			return null;
 		}
-		return $nt->getText();
+
+		return $title->getText();
 	}
 
 	private function getMigratedIdByUserName( string $username ): ?string {
-		$nt = Title::makeTitleSafe( NS_USER, $username );
-		if ( $nt === null ) {
-			$this->getLogger()->debug( 'Invalid preferred username for migration: ' . $username . '.' . PHP_EOL );
+		$title = $this->titleFactory->makeTitleSafe( NS_USER, $username );
+		if ( $title === null ) {
+			$this->getLogger()->debug( 'Invalid preferred username for migration: ' . $username );
 			return null;
 		}
-		$username = $nt->getText();
+		$username = $title->getText();
 		return $this->openIDConnectStore->getMigratedIdByUserName( $username );
 	}
 
 	private function getMigratedIdByEmail( string $email ): array {
-		$this->getLogger()->debug( 'Matching user to email ' . $email . '.' . PHP_EOL );
+		$this->getLogger()->debug( 'Matching user to email ' . $email );
 		return $this->openIDConnectStore->getMigratedIdByEmail( $email );
 	}
 
@@ -451,6 +528,23 @@ class OpenIDConnect extends PluggableAuth {
 			$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $preferred_username . $count );
 		}
 		return $preferred_username . $count;
+	}
+
+	/**
+	 * @return string
+	 */
+	private function getRandomUsername(): string {
+		while ( true ) {
+			$username = $this->globalIdGenerator->newUUIDv4();
+			$title = $this->titleFactory->makeTitleSafe( NS_USER, $username );
+			if ( $title !== null ) {
+				$username = $title->getText();
+				$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $username );
+				if ( !$userIdentity || !$userIdentity->isRegistered() ) {
+					return $username;
+				}
+			}
+		}
 	}
 
 	/**
