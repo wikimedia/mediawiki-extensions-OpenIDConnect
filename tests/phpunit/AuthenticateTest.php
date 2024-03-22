@@ -92,7 +92,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$client,
 			$userIdentityLookup,
 			$services->get( 'OpenIDConnectStore' ),
-			$services->getTitleFactory()
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -123,6 +124,28 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'Jane',
 			'Jane Smith',
 			'jane.smith@example.com'
+		];
+		yield [
+			'New user, preferred username, no conflict',
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+					'preferredUsernameProcessor' =>
+						fn ( $preferred_username, $attributes ) => strtoupper( $preferred_username ),
+					'realnameProcessor' => fn ( $realName, $attributes ) => strtoupper( $realName ),
+					'emailProcessor' => fn ( $email, $attributes ) => strtoupper( $email )
+				]
+			],
+			'Jane',
+			'Jane Smith',
+			'jane.smith@example.com',
+			false,
+			'JANE',
+			'JANE SMITH',
+			'JANE.SMITH@EXAMPLE.COM'
 		];
 		yield [
 			'New user, preferred name, user real name as username (ignored), no conflict',
@@ -295,12 +318,57 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$client,
 			$services->getUserIdentityLookup(),
 			$services->get( 'OpenIDConnectStore' ),
-			$services->getTitleFactory()
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
 
 		$this->assertFalse( $result, 'authentication failure' );
+	}
+
+	public function testAuthenticateRandomUsername() {
+		$config =
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+				]
+			];
+		$client = $this->getClient( $config, true, null, 'Jane Smith', 'jane.smith@example.com' );
+
+		$services = $this->getServiceContainer();
+		$oidc = new OpenIDConnect(
+			$services->getMainConfig(),
+			$services->getAuthManager(),
+			$client,
+			$services->getUserIdentityLookup(),
+			$services->get( 'OpenIDConnectStore' ),
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
+		);
+		$oidc->init( 'configId', $config );
+		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
+		$this->assertTrue( $result, 'authenticate random username first result' );
+		$this->assertStringStartsWith( 'User', $username, 'authenticate random username first username' );
+
+		$config['data']['useRandomUsernames'] = true;
+		$client = $this->getClient( $config, true, null, 'Julie Jones', 'julie.jones@example.com' );
+		$oidc = new OpenIDConnect(
+			$services->getMainConfig(),
+			$services->getAuthManager(),
+			$client,
+			$services->getUserIdentityLookup(),
+			$services->get( 'OpenIDConnectStore' ),
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
+		);
+		$oidc->init( 'configId', $config );
+		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
+		$this->assertTrue( $result, 'authenticate random username second result' );
+		$this->assertStringStartsNotWith( 'User', $username, 'authenticate random username second username' );
 	}
 
 	public function testAuthenticateSecondProviderMigration() {
@@ -324,7 +392,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$client,
 			$userIdentityLookup,
 			$services->get( 'OpenIDConnectStore' ),
-			$services->getTitleFactory()
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
@@ -339,7 +408,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$client,
 			$userIdentityLookup,
 			$services->get( 'OpenIDConnectStore' ),
-			$services->getTitleFactory()
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
 		);
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
