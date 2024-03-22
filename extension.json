@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "7.1.0",
+	"version": "7.2.0",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -51,6 +51,18 @@
 		},
 		"OpenIDConnect_UseEmailNameAsUserName": {
 			"value": false
+		},
+		"OpenIDConnect_UseRandomUsernames": {
+			"value": false
+		},
+		"OpenIDConnect_EmailProcessor": {
+			"value": null
+		},
+		"OpenIDConnect_RealNameProcessor": {
+			"value": null
+		},
+		"OpenIDConnect_PreferredUsernameProcessor": {
+			"value": null
 		}
 	},
 	"attributes": {
@@ -63,7 +75,8 @@
 					"OpenIDConnectClient",
 					"UserIdentityLookup",
 					"OpenIDConnectStore",
-					"TitleFactory"
+					"TitleFactory",
+					"GlobalIdGenerator"
 				]
 			}
 		}
