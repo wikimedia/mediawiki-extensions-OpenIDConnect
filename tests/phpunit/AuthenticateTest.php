@@ -415,7 +415,6 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
 
 		$this->assertTrue( $result, 'authenticate second provider result' );
-		// currently this does not match, but when multi-provider support is enabled, it will match
-		$this->assertNotEquals( $existingId, $id, 'authenticate second provider id' );
+		$this->assertEquals( $existingId, $id, 'authenticate second provider id' );
 	}
 }
