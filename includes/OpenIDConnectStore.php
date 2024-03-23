@@ -45,17 +45,10 @@ class OpenIDConnectStore {
 	 */
 	public function saveExtraAttributes( int $id, string $subject, string $issuer ): void {
 		$dbw = $this->loadBalancer->getConnection( DB_PRIMARY );
-		$dbw->upsert(
+		$dbw->insert(
 			'openid_connect',
 			[
 				'oidc_user' => $id,
-				'oidc_subject' => $subject,
-				'oidc_issuer' => $issuer
-			],
-			[
-				[ 'oidc_user' ]
-			],
-			[
 				'oidc_subject' => $subject,
 				'oidc_issuer' => $issuer
 			],
@@ -110,11 +103,6 @@ class OpenIDConnectStore {
 				]
 			)
 			->from( 'user' )
-			->leftJoin(
-				'openid_connect',
-				null,
-				'user_id=oidc_user'
-			)
 			->where(
 				[
 					'user_name' => $username
@@ -137,16 +125,10 @@ class OpenIDConnectStore {
 			->select(
 				[
 					'user_id',
-					'user_name',
-					'oidc_user'
+					'user_name'
 				]
 			)
 			->from( 'user' )
-			->leftJoin(
-				'openid_connect',
-				null,
-				'user_id=oidc_user'
-			)
 			->where(
 				[
 					'user_email' => $email
@@ -155,7 +137,7 @@ class OpenIDConnectStore {
 			// if multiple matching accounts, use the oldest one
 			->orderBy( 'user_registration' )
 			->caller( __METHOD__ )->fetchRow();
-		if ( $row !== false && $row->oidc_user === null ) {
+		if ( $row !== false ) {
 			return [ $row->user_id, $row->user_name ];
 		}
 		return [ null, null ];

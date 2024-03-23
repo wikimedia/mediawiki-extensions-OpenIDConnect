@@ -38,10 +38,10 @@
 					"oidc_issuer"
 				],
 				"options": {
-					"lengths": {
-						"oidc_subject": 50,
-						"oidc_issuer": 50
-					}
+					"lengths": [
+						50,
+						50
+					]
 				},
 				"unique": false
 			}
