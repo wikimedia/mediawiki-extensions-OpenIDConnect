@@ -21,9 +21,14 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
+use Jumbojett\OpenIDConnectClient;
 use MediaWiki\MediaWikiServices;
 
 return [
+	'OpenIDConnectClient' =>
+		static function ( MediaWikiServices $services ): OpenIDConnectClient {
+			return new OpenIDConnectClient();
+		},
 	'OpenIDConnectStore' =>
 		static function ( MediaWikiServices $services ): OpenIDConnectStore {
 			return new OpenIDConnectStore();

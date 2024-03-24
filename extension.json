@@ -60,6 +60,7 @@
 				"services": [
 					"MainConfig",
 					"AuthManager",
+					"OpenIDConnectClient",
 					"UserIdentityLookup",
 					"OpenIDConnectStore",
 					"TitleFactory"
