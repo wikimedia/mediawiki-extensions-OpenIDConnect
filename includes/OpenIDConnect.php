@@ -47,6 +47,11 @@ class OpenIDConnect extends PluggableAuth {
 	private $authManager;
 
 	/**
+	 * @var OpenIDConnectClient
+	 */
+	private $openIDConnectClient;
+
+	/**
 	 * @var UserIdentityLookup
 	 */
 	private $userIdentityLookup;
@@ -111,6 +116,7 @@ class OpenIDConnect extends PluggableAuth {
 	/**
 	 * @param Config $mainConfig
 	 * @param AuthManager $authManager
+	 * @param OpenIDConnectClient $openIDConnectClient
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
@@ -118,12 +124,14 @@ class OpenIDConnect extends PluggableAuth {
 	public function __construct(
 		Config $mainConfig,
 		AuthManager $authManager,
+		OpenIDConnectClient $openIDConnectClient,
 		UserIdentityLookup $userIdentityLookup,
 		OpenIDConnectStore $openIDConnectStore,
 		TitleFactory $titleFactory
 	) {
 		$this->mainConfig = $mainConfig;
 		$this->authManager = $authManager;
+		$this->openIDConnectClient = $openIDConnectClient;
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
@@ -142,6 +150,26 @@ class OpenIDConnect extends PluggableAuth {
 		$this->singleLogout = $this->getConfigValue( 'SingleLogout' );
 		$this->useRealNameAsUserName = $this->getConfigValue( 'UseRealNameAsUserName' );
 		$this->useEmailNameAsUserName = $this->getConfigValue( 'UseEmailNameAsUserName' );
+		$this->initClient();
+	}
+
+	private function initClient() {
+		Assert::precondition( $this->getData()->has( 'clientID' ), 'clientID missing from config' );
+		Assert::precondition( $this->getData()->has( 'clientsecret' ), 'clientsecret missing from config' );
+		Assert::precondition( $this->getData()->has( 'providerURL' ), 'providerURL missing from config' );
+
+		$this->openIDConnectClient->setProviderURL(
+			$this->getData()->get( 'providerURL' )
+		);
+		$this->openIDConnectClient->setIssuer(
+			$this->getData()->get( 'providerURL' )
+		);
+		$this->openIDConnectClient->setClientID(
+			$this->getData()->get( 'clientID' )
+		);
+		$this->openIDConnectClient->setClientSecret(
+			$this->getData()->get( 'clientsecret' )
+		);
 	}
 
 	/**
@@ -176,14 +204,12 @@ class OpenIDConnect extends PluggableAuth {
 		}
 
 		try {
-			$oidc = $this->getClient();
-
 			if ( $this->forceReauth ) {
-				$oidc->addAuthParam( [ 'prompt' => 'login' ] );
+				$this->openIDConnectClient->addAuthParam( [ 'prompt' => 'login' ] );
 			}
 
 			if ( $this->getData()->has( 'authparam' ) && is_array( $this->getData()->get( 'authparam' ) ) ) {
-				$oidc->addAuthParam( $this->getData()->get( 'authparam' ) );
+				$this->openIDConnectClient->addAuthParam( $this->getData()->get( 'authparam' ) );
 			}
 
 			if ( $this->getData()->has( 'scope' ) ) {
@@ -196,44 +222,44 @@ class OpenIDConnect extends PluggableAuth {
 				$scopes = [ 'openid', 'profile', 'email' ];
 			}
 			foreach ( $scopes as $scope ) {
-				$oidc->addScope( $scope );
+				$this->openIDConnectClient->addScope( $scope );
 			}
 
 			if ( $this->getData()->has( 'proxy' ) ) {
-				$oidc->setHttpProxy( $this->getData()->get( 'proxy' ) );
+				$this->openIDConnectClient->setHttpProxy( $this->getData()->get( 'proxy' ) );
 			}
 
 			if ( $this->getData()->has( 'verifyHost' ) ) {
-				$oidc->setVerifyHost( $this->getData()->get( 'verifyHost' ) );
+				$this->openIDConnectClient->setVerifyHost( $this->getData()->get( 'verifyHost' ) );
 			}
 
 			if ( $this->getData()->has( 'verifyPeer' ) ) {
-				$oidc->setVerifyPeer( $this->getData()->get( 'verifyPeer' ) );
+				$this->openIDConnectClient->setVerifyPeer( $this->getData()->get( 'verifyPeer' ) );
 			}
 
 			if ( $this->getData()->has( 'providerConfig' ) ) {
-				$oidc->providerConfigParam( $this->getData()->get( 'providerConfig' ) );
+				$this->openIDConnectClient->providerConfigParam( $this->getData()->get( 'providerConfig' ) );
 			}
 
 			if ( $this->getData()->has( 'issuerValidator' ) ) {
 				$issuerValidator = $this->getData()->get( 'issuerValidator' );
 				if ( is_callable( $issuerValidator ) ) {
-					$oidc->setIssuerValidator( $issuerValidator );
+					$this->openIDConnectClient->setIssuerValidator( $issuerValidator );
 				}
 			}
 
 			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
-			$oidc->setRedirectURL( $redirectURL );
+			$this->openIDConnectClient->setRedirectURL( $redirectURL );
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
 
-			if ( $oidc->authenticate() ) {
-				$realname = $this->getClaim( $oidc, 'name' );
-				$email = $this->getClaim( $oidc, 'email' );
+			if ( $this->openIDConnectClient->authenticate() ) {
+				$realname = $this->getClaim( 'name' );
+				$email = $this->getClaim( 'email' );
 
-				$this->subject = $this->getClaim( $oidc, 'sub' );
+				$this->subject = $this->getClaim( 'sub' );
 				$this->authManager->setAuthenticationSessionData( self::OIDC_SUBJECT_SESSION_KEY, $this->subject );
 
-				$this->issuer = $oidc->getProviderURL();
+				$this->issuer = $this->openIDConnectClient->getProviderURL();
 				$this->authManager->setAuthenticationSessionData( self::OIDC_ISSUER_SESSION_KEY, $this->issuer );
 
 				$this->getLogger()->debug(
@@ -243,10 +269,22 @@ class OpenIDConnect extends PluggableAuth {
 					', Issuer: ' . $this->issuer
 				);
 
-				$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, (array)$oidc->getAccessTokenPayload() );
-				$this->setSessionSecret( self::OIDC_IDTOKEN_SESSION_KEY, $oidc->getIdToken() );
-				$this->setSessionSecret( self::OIDC_IDTOKENPAYLOAD_SESSION_KEY, (array)$oidc->getIdTokenPayload() );
-				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $oidc->getRefreshToken() );
+				$this->setSessionSecret(
+					self::OIDC_ACCESSTOKEN_SESSION_KEY,
+					(array)$this->openIDConnectClient->getAccessTokenPayload()
+				);
+				$this->setSessionSecret(
+					self::OIDC_IDTOKEN_SESSION_KEY,
+					$this->openIDConnectClient->getIdToken()
+				);
+				$this->setSessionSecret(
+					self::OIDC_IDTOKENPAYLOAD_SESSION_KEY,
+					(array)$this->openIDConnectClient->getIdTokenPayload()
+				);
+				$this->setSessionSecret(
+					self::OIDC_REFRESHTOKEN_SESSION_KEY,
+					$this->openIDConnectClient->getRefreshToken()
+				);
 
 				[ $id, $username ] =
 					$this->openIDConnectStore->findUser( $this->subject, $this->issuer );
@@ -268,7 +306,7 @@ class OpenIDConnect extends PluggableAuth {
 					}
 				}
 
-				$preferred_username = $this->getPreferredUsername( $oidc, $realname, $email );
+				$preferred_username = $this->getPreferredUsername( $realname, $email );
 				$this->getLogger()->debug( 'Preferred username: ' . $preferred_username . PHP_EOL );
 
 				if ( $this->migrateUsersByUserName ) {
@@ -313,8 +351,7 @@ class OpenIDConnect extends PluggableAuth {
 			if ( !$title ) {
 				$title = $this->titleFactory->newMainPage();
 			}
-			$oidc = $this->getClient();
-			$oidc->signOut( $idToken, $title->getFullURL() );
+			$this->openIDConnectClient->signOut( $idToken, $title->getFullURL() );
 		}
 	}
 
@@ -352,18 +389,6 @@ class OpenIDConnect extends PluggableAuth {
 		return $this->singleLogout;
 	}
 
-	private function getClient(): OpenIDConnectClient {
-		Assert::precondition( $this->getData()->has( 'clientID' ), 'clientID missing from config' );
-		Assert::precondition( $this->getData()->has( 'clientsecret' ), 'clientsecret missing from config' );
-		Assert::precondition( $this->getData()->has( 'providerURL' ), 'providerURL missing from config' );
-
-		return new OpenIDConnectClient(
-			$this->getData()->get( 'providerURL' ),
-			$this->getData()->get( 'clientID' ),
-			$this->getData()->get( 'clientsecret' )
-		);
-	}
-
 	private function setSessionSecret( $key, $value ) {
 		$this->authManager->getRequest()->getSession()->setSecret( $key, $value );
 	}
@@ -372,13 +397,13 @@ class OpenIDConnect extends PluggableAuth {
 		return $this->authManager->getRequest()->getSession()->getSecret( $key );
 	}
 
-	private function getPreferredUsername( OpenIDConnectClient $oidc, ?string $realname, ?string $email ): ?string {
+	private function getPreferredUsername( ?string $realname, ?string $email ): ?string {
 		if ( $this->getData()->has( 'preferred_username' ) ) {
 			$attributeName = $this->getData()->get( 'preferred_username' );
 			$this->getLogger()->debug( 'Using ' . $attributeName . ' attribute for preferred username.' . PHP_EOL );
-			$preferred_username = $this->getClaim( $oidc, $attributeName );
+			$preferred_username = $this->getClaim( $attributeName );
 		} else {
-			$preferred_username = $this->getClaim( $oidc, 'preferred_username' );
+			$preferred_username = $this->getClaim( 'preferred_username' );
 		}
 		if ( is_string( $preferred_username ) && strlen( $preferred_username ) > 0 ) {
 			// do nothing
@@ -446,12 +471,11 @@ class OpenIDConnect extends PluggableAuth {
 		}
 		$refreshToken = $this->getSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY );
 		if ( $refreshToken ) {
-			$client = $this->getClient();
-			$json = $client->refreshToken( $refreshToken );
+			$json = $this->openIDConnectClient->refreshToken( $refreshToken );
 			if ( isset( $json->refresh_token ) ) {
 				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $json->refresh_token );
 			}
-			$accessToken = (array)$client->getAccessTokenPayload();
+			$accessToken = (array)$this->openIDConnectClient->getAccessTokenPayload();
 			$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $accessToken );
 			return $accessToken;
 		}
@@ -462,15 +486,14 @@ class OpenIDConnect extends PluggableAuth {
 	 * This function first tries to get a claim from the ID token. If not found it aks the user info endpoint.
 	 * The function shall be called from authenticate() only.
 	 *
-	 * @param OpenIDConnectClient $oidc OIDC client. Must be the same that was used to authenticate.
 	 * @param string $claimName The name of a claim.
 	 * @return string|null The claim value or null
 	 */
-	private function getClaim( $oidc, string $claimName ): ?string {
-		$value = $oidc->getVerifiedClaims( $claimName );
+	private function getClaim( string $claimName ): ?string {
+		$value = $this->openIDConnectClient->getVerifiedClaims( $claimName );
 		if ( $value ) {
 			return $value;
 		}
-		return $oidc->requestUserInfo( $claimName );
+		return $this->openIDConnectClient->requestUserInfo( $claimName );
 	}
 }
