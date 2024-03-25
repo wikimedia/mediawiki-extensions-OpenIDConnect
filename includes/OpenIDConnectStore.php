@@ -21,7 +21,19 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
+use Wikimedia\Rdbms\ILoadBalancer;
+
 class OpenIDConnectStore {
+	/**
+	 * @var ILoadBalancer
+	 */
+	private $loadBalancer;
+
+	public function __construct(
+		ILoadBalancer $loadBalancer
+	) {
+		$this->loadBalancer = $loadBalancer;
+	}
 
 	/**
 	 * @param int $id user id
@@ -29,7 +41,7 @@ class OpenIDConnectStore {
 	 * @param string $issuer
 	 */
 	public function saveExtraAttributes( int $id, string $subject, string $issuer ): void {
-		$dbw = wfGetDB( DB_PRIMARY );
+		$dbw = $this->loadBalancer->getConnection( DB_PRIMARY );
 		$dbw->upsert(
 			'openid_connect',
 			[
@@ -54,26 +66,27 @@ class OpenIDConnectStore {
 	 * @return array
 	 */
 	public function findUser( string $subject, string $issuer ): array {
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id',
-				'user_name'
-			],
-			[
-				'oidc_subject' => $subject,
-				'oidc_issuer' => $issuer
-			],
-			__METHOD__,
-			[],
-			[
-				'openid_connect' => [ 'JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
+		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
+		$row = $dbr->newSelectQueryBuilder()
+			->select(
+				[
+					'user_id',
+					'user_name'
+				]
+			)
+			->from( 'user' )
+			->join(
+				'openid_connect',
+				null,
+				'user_id=oidc_user'
+			)
+			->where(
+				[
+					'oidc_subject' => $subject,
+					'oidc_issuer' => $issuer
+				]
+			)
+			->caller( __METHOD__ )->fetchRow();
 		if ( $row === false ) {
 			return [ null, null ];
 		} else {
@@ -86,24 +99,25 @@ class OpenIDConnectStore {
 	 * @return string|null
 	 */
 	public function getMigratedIdByUserName( string $username ): ?string {
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id'
-			],
-			[
-				'user_name' => $username
-			],
-			__METHOD__,
-			[],
-			[
-				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
+		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
+		$row = $dbr->newSelectQueryBuilder()
+			->select(
+				[
+					'user_id'
+				]
+			)
+			->from( 'user' )
+			->leftJoin(
+				'openid_connect',
+				null,
+				'user_id=oidc_user'
+			)
+			->where(
+				[
+					'user_name' => $username
+				]
+			)
+			->caller( __METHOD__ )->fetchRow();
 		if ( $row !== false ) {
 			return $row->user_id;
 		}
@@ -115,29 +129,29 @@ class OpenIDConnectStore {
 	 * @return array
 	 */
 	public function getMigratedIdByEmail( string $email ): array {
-		$dbr = wfGetDB( DB_REPLICA );
-		$row = $dbr->selectRow(
-			[
-				'user',
-				'openid_connect'
-			],
-			[
-				'user_id',
-				'user_name',
-				'oidc_user'
-			],
-			[
-				'user_email' => $email
-			],
-			__METHOD__,
-			[
-				// if multiple matching accounts, use the oldest one
-				'ORDER BY' => 'user_registration'
-			],
-			[
-				'openid_connect' => [ 'LEFT JOIN', [ 'user_id=oidc_user' ] ]
-			]
-		);
+		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
+		$row = $dbr->newSelectQueryBuilder()
+			->select(
+				[
+					'user_id',
+					'user_name',
+					'oidc_user'
+				]
+			)
+			->from( 'user' )
+			->leftJoin(
+				'openid_connect',
+				null,
+				'user_id=oidc_user'
+			)
+			->where(
+				[
+					'user_email' => $email
+				]
+			)
+			// if multiple matching accounts, use the oldest one
+			->orderBy( 'user_registration' )
+			->caller( __METHOD__ )->fetchRow();
 		if ( $row !== false && $row->oidc_user === null ) {
 			return [ $row->user_id, $row->user_name ];
 		}

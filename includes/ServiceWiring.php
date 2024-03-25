@@ -26,6 +26,8 @@ use MediaWiki\MediaWikiServices;
 return [
 	'OpenIDConnectStore' =>
 		static function ( MediaWikiServices $services ): OpenIDConnectStore {
-			return new OpenIDConnectStore();
+			return new OpenIDConnectStore(
+				$services->getDBLoadBalancer()
+			);
 		},
 ];
