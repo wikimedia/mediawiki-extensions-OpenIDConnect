@@ -12,7 +12,6 @@ use MediaWikiIntegrationTestCase;
  */
 class AuthenticateTest extends MediaWikiIntegrationTestCase {
 	public function addDBDataOnce(): void {
-		$_SERVER['SERVER_PORT'] = 80;
 		$user = self::getMutableTestUser()->getUser();
 		$user->setName( 'John' );
 		$user->setRealName( 'John Doe' );
