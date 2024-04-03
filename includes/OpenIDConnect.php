@@ -198,11 +198,6 @@ class OpenIDConnect extends PluggableAuth {
 		?string &$email,
 		?string &$errorMessage
 	): bool {
-		if ( !array_key_exists( 'SERVER_PORT', $_SERVER ) ) {
-			$this->getLogger()->debug( 'in authenticate, server port not set' . PHP_EOL );
-			return false;
-		}
-
 		try {
 			if ( $this->forceReauth ) {
 				$this->openIDConnectClient->addAuthParam( [ 'prompt' => 'login' ] );
@@ -221,9 +216,7 @@ class OpenIDConnect extends PluggableAuth {
 			} else {
 				$scopes = [ 'openid', 'profile', 'email' ];
 			}
-			foreach ( $scopes as $scope ) {
-				$this->openIDConnectClient->addScope( $scope );
-			}
+			$this->openIDConnectClient->addScope( $scopes );
 
 			if ( $this->getData()->has( 'proxy' ) ) {
 				$this->openIDConnectClient->setHttpProxy( $this->getData()->get( 'proxy' ) );
