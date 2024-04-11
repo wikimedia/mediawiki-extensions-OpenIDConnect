@@ -29,6 +29,7 @@ use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\Session\SessionManager;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
+use MediaWiki\User\UserNameUtils;
 use SpecialPage;
 use TitleFactory;
 use Wikimedia\Assert\Assert;
@@ -55,6 +56,11 @@ class OpenIDConnect extends PluggableAuth {
 	 * @var UserIdentityLookup
 	 */
 	private $userIdentityLookup;
+
+	/**
+	 * @var UserNameUtils
+	 */
+	private $userNameUtils;
 
 	/**
 	 * @var OpenIDConnectStore
@@ -143,6 +149,7 @@ class OpenIDConnect extends PluggableAuth {
 	 * @param AuthManager $authManager
 	 * @param OpenIDConnectClient $openIDConnectClient
 	 * @param UserIdentityLookup $userIdentityLookup
+	 * @param UserNameUtils $userNameUtils
 	 * @param OpenIDConnectStore $openIDConnectStore
 	 * @param TitleFactory $titleFactory
 	 * @param GlobalIdGenerator $globalIdGenerator
@@ -152,6 +159,7 @@ class OpenIDConnect extends PluggableAuth {
 		AuthManager $authManager,
 		OpenIDConnectClient $openIDConnectClient,
 		UserIdentityLookup $userIdentityLookup,
+		UserNameUtils $userNameUtils,
 		OpenIDConnectStore $openIDConnectStore,
 		TitleFactory $titleFactory,
 		GlobalIdGenerator $globalIdGenerator
@@ -160,6 +168,7 @@ class OpenIDConnect extends PluggableAuth {
 		$this->authManager = $authManager;
 		$this->openIDConnectClient = $openIDConnectClient;
 		$this->userIdentityLookup = $userIdentityLookup;
+		$this->userNameUtils = $userNameUtils;
 		$this->openIDConnectStore = $openIDConnectStore;
 		$this->titleFactory = $titleFactory;
 		$this->globalIdGenerator = $globalIdGenerator;
@@ -535,10 +544,11 @@ class OpenIDConnect extends PluggableAuth {
 	 */
 	private function getRandomUsername(): string {
 		while ( true ) {
-			$username = $this->globalIdGenerator->newUUIDv4();
-			$title = $this->titleFactory->makeTitleSafe( NS_USER, $username );
-			if ( $title !== null ) {
-				$username = $title->getText();
+			$username = $this->userNameUtils->getCanonical(
+				$this->globalIdGenerator->newUUIDv4(),
+				UserNameUtils::RIGOR_CREATABLE
+			);
+			if ( $username ) {
 				$userIdentity = $this->userIdentityLookup->getUserIdentityByName( $username );
 				if ( !$userIdentity || !$userIdentity->isRegistered() ) {
 					return $username;
