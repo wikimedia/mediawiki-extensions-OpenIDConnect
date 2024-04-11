@@ -344,7 +344,7 @@ class OpenIDConnect extends PluggableAuth {
 
 				if ( $this->migrateUsersByEmail && ( $email ?? '' ) !== '' ) {
 					$this->getLogger()->debug( 'Checking for email migration' );
-					[ $id, $username ] = $this->getMigratedIdByEmail( $email );
+					[ $id, $username, $email ] = $this->getMigratedIdByEmail( $email );
 					if ( $id !== null ) {
 						$this->saveExtraAttributes( $id );
 						$this->getLogger()->debug( 'Migrated user ' . $username . ' by email: ' . $email );
