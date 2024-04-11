@@ -265,7 +265,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			[
 				'plugin' => 'OpenIDConnect',
 				'data' => [
-					'providerURL' => 'https://provider.url.com',
+					'providerURL' => 'https://provider1.url.com',
 					'clientID' => 'clientIDvalue',
 					'clientsecret' => 'clientsecretvalue',
 					'migrateUsersByEmail' => true
@@ -280,11 +280,30 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'john.doe@example.com'
 		];
 		yield [
+			'Migrate by email uppercase',
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider2.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+					'migrateUsersByEmail' => true
+				]
+			],
+			'John',
+			'John Doe',
+			'JOHN.DOE@EXAMPLE.COM',
+			true,
+			'John',
+			'John Doe',
+			'john.doe@example.com'
+		];
+		yield [
 			'Migrate by username',
 			[
 				'plugin' => 'OpenIDConnect',
 				'data' => [
-					'providerURL' => 'https://provider.url.com',
+					'providerURL' => 'https://provider3.url.com',
 					'clientID' => 'clientIDvalue',
 					'clientsecret' => 'clientsecretvalue',
 					'migrateUsersByUsername' => true
@@ -380,7 +399,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			[
 				'plugin' => 'OpenIDConnect',
 				'data' => [
-					'providerURL' => 'https://provider1.url.com',
+					'providerURL' => 'https://provider4.url.com',
 					'clientID' => 'clientIDvalue',
 					'clientsecret' => 'clientsecretvalue',
 					'migrateUsersByEmail' => true
@@ -405,7 +424,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 		$existingId = $userIdentityLookup->getUserIdentityByName( 'John' )->getId();
 		$oidc->saveExtraAttributes( $existingId );
 
-		$config['data']['providerURL'] = 'https://provider2.url.com';
+		$config['data']['providerURL'] = 'https://provider5.url.com';
 		$client = $this->getClient( $config, true, 'John', 'John Doe', 'john.doe@example.com' );
 		$oidc = new OpenIDConnect(
 			$services->getMainConfig(),
