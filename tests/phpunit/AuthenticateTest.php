@@ -91,6 +91,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$userIdentityLookup,
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
@@ -317,6 +318,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
@@ -345,6 +347,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
@@ -361,6 +364,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
@@ -391,6 +395,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$userIdentityLookup,
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
@@ -407,6 +412,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			$services->getAuthManager(),
 			$client,
 			$userIdentityLookup,
+			$services->get( 'UserNameUtils' ),
 			$services->get( 'OpenIDConnectStore' ),
 			$services->getTitleFactory(),
 			$services->getGlobalIdGenerator()
