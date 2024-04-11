@@ -122,20 +122,21 @@ class OpenIDConnectStore {
 			->select(
 				[
 					'user_id',
-					'user_name'
+					'user_name',
+					'user_email'
 				]
 			)
 			->from( 'user' )
 			->where(
 				[
-					'user_email' => $email
+					'LOWER(user_email)' => strtolower( $email )
 				]
 			)
 			// if multiple matching accounts, use the oldest one
 			->orderBy( 'user_registration' )
 			->caller( __METHOD__ )->fetchRow();
 		if ( $row !== false ) {
-			return [ $row->user_id, $row->user_name ];
+			return [ $row->user_id, $row->user_name, $row->user_email ];
 		}
 		return [ null, null ];
 	}
