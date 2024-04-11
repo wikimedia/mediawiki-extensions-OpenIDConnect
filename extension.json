@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "8.0.1",
+	"version": "8.0.2",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -74,6 +74,7 @@
 					"AuthManager",
 					"OpenIDConnectClient",
 					"UserIdentityLookup",
+					"UserNameUtils",
 					"OpenIDConnectStore",
 					"TitleFactory",
 					"GlobalIdGenerator"
