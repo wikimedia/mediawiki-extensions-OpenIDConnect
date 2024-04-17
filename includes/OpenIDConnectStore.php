@@ -138,6 +138,6 @@ class OpenIDConnectStore {
 		if ( $row !== false ) {
 			return [ $row->user_id, $row->user_name, $row->user_email ];
 		}
-		return [ null, null ];
+		return [ null, null, $email ];
 	}
 }
