@@ -304,6 +304,20 @@ class OpenIDConnect extends PluggableAuth {
 				);
 			}
 
+			if ( $this->getData()->has( 'authMethods' ) ) {
+				$authMethods = $this->getData()->get( 'authMethods' );
+				if ( is_array( $authMethods ) ) {
+					$this->openIDConnectClient->setTokenEndpointAuthMethodsSupported( $authMethods );
+				}
+			}
+
+			if ( $this->getData()->has( 'privateKeyJwtGenerator' ) ) {
+				$privateKeyJwtGenerator = $this->getData()->get( 'privateKeyJwtGenerator' );
+				if ( is_callable( $privateKeyJwtGenerator ) ) {
+					$this->openIDConnectClient->setPrivateKeyJwtGenerator( $privateKeyJwtGenerator );
+				}
+			}
+
 			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$this->openIDConnectClient->setRedirectURL( $redirectURL );
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
