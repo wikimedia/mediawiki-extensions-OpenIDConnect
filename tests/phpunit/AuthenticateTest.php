@@ -42,7 +42,9 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'getIdTokenPayload',
 			'getRefreshToken',
 			'setWellKnownConfigParameters',
-			'setCodeChallengeMethod'
+			'setCodeChallengeMethod',
+			'setTokenEndpointAuthMethodsSupported',
+			'setPrivateKeyJwtGenerator'
 		] );
 		$client->method( 'authenticate' )->willReturn( $result );
 		$client->method( 'getVerifiedClaims' )->willReturnCallback( static function ( $key ) use ( $realname, $email ) {
@@ -503,5 +505,38 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
 		$this->assertTrue( $result, 'authenticate code challenge method result' );
+	}
+
+	public function testAuthenticateAuthMethods() {
+		$config =
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+					'authMethods' => [
+						'client_secret_basic',
+						'client_secret_jwt'
+					],
+					'privateKeyJwtGenerator' => fn ( $token_endpoint ) => 'privateKeyJwt'
+				]
+			];
+		$client = $this->getClient( $config, true, null, 'Jane Smith', 'jane.smith@example.com' );
+
+		$services = $this->getServiceContainer();
+		$oidc = new OpenIDConnect(
+			$services->getMainConfig(),
+			$services->getAuthManager(),
+			$client,
+			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
+			$services->get( 'OpenIDConnectStore' ),
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
+		);
+		$oidc->init( 'configId', $config );
+		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
+		$this->assertTrue( $result, 'authenticate auth methods result' );
 	}
 }
