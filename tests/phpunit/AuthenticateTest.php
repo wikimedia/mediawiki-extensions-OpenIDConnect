@@ -41,7 +41,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'getIdToken',
 			'getIdTokenPayload',
 			'getRefreshToken',
-			'setWellKnownConfigParameters'
+			'setWellKnownConfigParameters',
+			'setCodeChallengeMethod'
 		] );
 		$client->method( 'authenticate' )->willReturn( $result );
 		$client->method( 'getVerifiedClaims' )->willReturnCallback( static function ( $key ) use ( $realname, $email ) {
@@ -473,5 +474,34 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 		$oidc->init( 'configId', $config );
 		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
 		$this->assertTrue( $result, 'authenticate well known config params result' );
+	}
+
+	public function testAuthenticateCodeChallengeMethod() {
+		$config =
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+					'codeChallengeMethod' => 'S256'
+				]
+			];
+		$client = $this->getClient( $config, true, null, 'Jane Smith', 'jane.smith@example.com' );
+
+		$services = $this->getServiceContainer();
+		$oidc = new OpenIDConnect(
+			$services->getMainConfig(),
+			$services->getAuthManager(),
+			$client,
+			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
+			$services->get( 'OpenIDConnectStore' ),
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
+		);
+		$oidc->init( 'configId', $config );
+		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
+		$this->assertTrue( $result, 'authenticate code challenge method result' );
 	}
 }
