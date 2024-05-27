@@ -298,6 +298,12 @@ class OpenIDConnect extends PluggableAuth {
 				}
 			}
 
+			if ( $this->getData()->has( 'codeChallengeMethod' ) ) {
+				$this->openIDConnectClient->setCodeChallengeMethod(
+					$this->getData()->get( 'codeChallengeMethod' )
+				);
+			}
+
 			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$this->openIDConnectClient->setRedirectURL( $redirectURL );
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );
