@@ -1,6 +1,6 @@
 {
 	"name": "OpenID Connect",
-	"version": "8.0.3",
+	"version": "8.1.0",
 	"author": [
 		"[https://www.mediawiki.org/wiki/User:Cindy.cicalese Cindy Cicalese]"
 	],
@@ -9,7 +9,7 @@
 	"type": "other",
 	"license-name": "MIT",
 	"requires": {
-		"MediaWiki": ">= 1.36.0",
+		"MediaWiki": ">= 1.39.0",
 		"extensions": {
 			"PluggableAuth": ">= 7.0"
 		}
