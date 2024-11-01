@@ -33,6 +33,6 @@ class SchemaHooks implements LoadExtensionSchemaUpdatesHook {
 	public function onLoadExtensionSchemaUpdates( $updater ) {
 		$dir = __DIR__ . '/../sql/' . $updater->getDB()->getType() . '/';
 		$updater->addExtensionTable( 'openid_connect', $dir . 'OpenIDConnect.sql' );
-		$updater->modifyExtensionTable( 'openid_connect', $dir . 'ChangePrimaryKey.sql' );
+		$updater->addExtensionField( 'openid_connect', 'oidc_id', $dir . 'ChangePrimaryKey.sql' );
 	}
 }
