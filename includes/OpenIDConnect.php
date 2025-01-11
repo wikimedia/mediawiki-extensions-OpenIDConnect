@@ -291,6 +291,13 @@ class OpenIDConnect extends PluggableAuth {
 				}
 			}
 
+			if ( $this->getData()->has( 'wellKnownConfigParameters' ) ) {
+				$wellKnownConfigParameters = $this->getData()->get( 'wellKnownConfigParameters' );
+				if ( is_array( $wellKnownConfigParameters ) ) {
+					$this->openIDConnectClient->setWellKnownConfigParameters( $wellKnownConfigParameters );
+				}
+			}
+
 			$redirectURL = SpecialPage::getTitleFor( 'PluggableAuthLogin' )->getFullURL();
 			$this->openIDConnectClient->setRedirectURL( $redirectURL );
 			$this->getLogger()->debug( 'Redirect URL: ' . $redirectURL );

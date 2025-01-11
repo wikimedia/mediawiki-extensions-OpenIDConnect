@@ -40,7 +40,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'getAccessTokenPayload',
 			'getIdToken',
 			'getIdTokenPayload',
-			'getRefreshToken'
+			'getRefreshToken',
+			'setWellKnownConfigParameters'
 		] );
 		$client->method( 'authenticate' )->willReturn( $result );
 		$client->method( 'getVerifiedClaims' )->willReturnCallback( static function ( $key ) use ( $realname, $email ) {
@@ -441,5 +442,36 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertTrue( $result, 'authenticate second provider result' );
 		$this->assertEquals( $existingId, $id, 'authenticate second provider id' );
+	}
+
+	public function testAuthenticateWellKnownConfigParams() {
+		$config =
+			[
+				'plugin' => 'OpenIDConnect',
+				'data' => [
+					'providerURL' => 'https://provider.url.com',
+					'clientID' => 'clientIDvalue',
+					'clientsecret' => 'clientsecretvalue',
+					'wellKnownConfigParameters' => [
+						'appid' => 'clientIDvalue'
+					]
+				]
+			];
+		$client = $this->getClient( $config, true, null, 'Jane Smith', 'jane.smith@example.com' );
+
+		$services = $this->getServiceContainer();
+		$oidc = new OpenIDConnect(
+			$services->getMainConfig(),
+			$services->getAuthManager(),
+			$client,
+			$services->getUserIdentityLookup(),
+			$services->get( 'UserNameUtils' ),
+			$services->get( 'OpenIDConnectStore' ),
+			$services->getTitleFactory(),
+			$services->getGlobalIdGenerator()
+		);
+		$oidc->init( 'configId', $config );
+		$result = $oidc->authenticate( $id, $username, $realname, $email, $errorMessage );
+		$this->assertTrue( $result, 'authenticate well known config params result' );
 	}
 }
