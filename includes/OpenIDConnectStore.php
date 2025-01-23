@@ -118,6 +118,19 @@ class OpenIDConnectStore {
 	 */
 	public function getMigratedIdByEmail( string $email ): array {
 		$dbr = $this->loadBalancer->getConnection( DB_REPLICA );
+		switch ( $dbr->getType() ) {
+			case 'mysql':
+				$query = 'CONVERT(user_email USING utf8mb4)';
+				break;
+			case 'sqlite':
+				$query = 'LOWER(CAST(user_email AS TEXT))';
+				break;
+			case 'postgres':
+				$query = 'LOWER(user_email::text)';
+				break;
+			default:
+				$query = 'LOWER(CAST(user_email AS CHAR))';
+		}
 		$row = $dbr->newSelectQueryBuilder()
 			->select(
 				[
@@ -129,7 +142,7 @@ class OpenIDConnectStore {
 			->from( 'user' )
 			->where(
 				[
-					'LOWER(user_email)' => strtolower( $email )
+					$query => strtolower( $email )
 				]
 			)
 			// if multiple matching accounts, use the oldest one
