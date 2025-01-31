@@ -2,7 +2,7 @@
 
 const Page = require( 'wdio-mediawiki/Page' );
 
-class MainPagePage extends Page {
+class MainPage extends Page {
 
 	get loginLink() {
 		return $( '#pt-login-2 a' );
@@ -31,6 +31,12 @@ class MainPagePage extends Page {
 	async open() {
 		return super.openTitle( 'Main Page' );
 	}
+
+	async login( username, password ) {
+		await this.usernameField.setValue( username );
+		await this.passwordField.setValue( password );
+		await this.kcLogin.click();
+	}
 }
 
-module.exports = new MainPagePage();
+module.exports = new MainPage();

@@ -1,24 +1,25 @@
 'use strict';
 
-const MainPagePage = require( '../pageobjects/mainpage.page' );
+const MainPage = require( '../pageobjects/main.page' );
 
 describe( 'OpenIDConnect', () => {
 
 	it( 'can login', async () => {
-		await MainPagePage.open();
+		await MainPage.open();
 
-		await expect( await MainPagePage.loginLink ).toExist();
-		await MainPagePage.loginLink.waitForClickable();
-		await MainPagePage.loginLink.click();
-		await expect( await MainPagePage.kcFormLogin ).toExist();
-		await expect( await MainPagePage.usernameField ).toExist();
-		await expect( await MainPagePage.passwordField ).toExist();
-		await expect( await MainPagePage.kcLogin ).toExist();
-		await MainPagePage.usernameField.setValue( 'testuser' );
-		await MainPagePage.passwordField.setValue( 'testpass' );
-		await MainPagePage.kcLogin.click();
-		await expect( await MainPagePage.userpage ).toExist();
-		await expect( await MainPagePage.userpage ).toHaveText( 'Testuser' );
+		await expect( await MainPage.loginLink ).toExist();
+		await MainPage.loginLink.waitForClickable();
+		await MainPage.loginLink.click();
+
+		await expect( await MainPage.kcFormLogin ).toExist();
+		await expect( await MainPage.usernameField ).toExist();
+		await expect( await MainPage.passwordField ).toExist();
+		await expect( await MainPage.kcLogin ).toExist();
+
+		await MainPage.login( 'testuser', 'testpass' );
+
+		await expect( await MainPage.userpage ).toExist();
+		await expect( await MainPage.userpage ).toHaveText( 'Testuser' );
 
 	} );
 
