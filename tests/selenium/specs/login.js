@@ -1,6 +1,7 @@
 'use strict';
 
 const MainPage = require( '../pageobjects/main.page' );
+const Keycloak = require( '../pageobjects/keycloak' );
 
 describe( 'OpenIDConnect', () => {
 
@@ -11,16 +12,15 @@ describe( 'OpenIDConnect', () => {
 		await MainPage.loginLink.waitForClickable();
 		await MainPage.loginLink.click();
 
-		await expect( await MainPage.kcFormLogin ).toExist();
-		await expect( await MainPage.usernameField ).toExist();
-		await expect( await MainPage.passwordField ).toExist();
-		await expect( await MainPage.kcLogin ).toExist();
+		await expect( await Keycloak.kcFormLogin ).toExist();
+		await expect( await Keycloak.usernameField ).toExist();
+		await expect( await Keycloak.passwordField ).toExist();
+		await expect( await Keycloak.kcLogin ).toExist();
 
-		await MainPage.login( 'testuser', 'testpass' );
+		await Keycloak.login( 'testuser', 'testpass' );
 
 		await expect( await MainPage.userpage ).toExist();
 		await expect( await MainPage.userpage ).toHaveText( 'Testuser' );
-
 	} );
 
 } );
