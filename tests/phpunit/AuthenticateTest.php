@@ -139,9 +139,9 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 					'clientID' => 'clientIDvalue',
 					'clientsecret' => 'clientsecretvalue',
 					'preferredUsernameProcessor' =>
-						fn ( $preferred_username, $attributes ) => strtoupper( $preferred_username ),
-					'realnameProcessor' => fn ( $realName, $attributes ) => strtoupper( $realName ),
-					'emailProcessor' => fn ( $email, $attributes ) => strtoupper( $email )
+						static fn ( $preferred_username, $attributes ) => strtoupper( $preferred_username ),
+					'realnameProcessor' => static fn ( $realName, $attributes ) => strtoupper( $realName ),
+					'emailProcessor' => static fn ( $email, $attributes ) => strtoupper( $email )
 				]
 			],
 			'Jane',
@@ -519,7 +519,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 						'client_secret_basic',
 						'client_secret_jwt'
 					],
-					'privateKeyJwtGenerator' => fn ( $token_endpoint ) => 'privateKeyJwt'
+					'privateKeyJwtGenerator' => static fn ( $token_endpoint ) => 'privateKeyJwt'
 				]
 			];
 		$client = $this->getClient( $config, true, null, 'Jane Smith', 'jane.smith@example.com' );
