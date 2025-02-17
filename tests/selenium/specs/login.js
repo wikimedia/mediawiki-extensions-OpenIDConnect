@@ -8,9 +8,10 @@ describe( 'OpenIDConnect', () => {
 	it( 'can login', async () => {
 		await MainPage.open();
 
-		await expect( await MainPage.loginLink ).toExist();
-		await MainPage.loginLink.waitForClickable();
-		await MainPage.loginLink.click();
+		const loginLink = await MainPage.loginLink;
+		await loginLink.waitForExist();
+		await loginLink.waitForClickable();
+		await loginLink.click();
 
 		await expect( await Keycloak.kcFormLogin ).toExist();
 		await expect( await Keycloak.usernameField ).toExist();
