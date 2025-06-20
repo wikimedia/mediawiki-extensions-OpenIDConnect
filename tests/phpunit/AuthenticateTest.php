@@ -37,6 +37,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			'getVerifiedClaims',
 			'requestUserInfo',
 			'getProviderURL',
+			'getAccessToken',
 			'getAccessTokenPayload',
 			'getIdToken',
 			'getIdTokenPayload',
@@ -64,6 +65,7 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 			}
 		} );
 		$client->method( 'getProviderURL' )->willReturn( $config['data']['providerURL'] );
+		$client->method( 'getAccessToken' )->willReturn( 'dummytoken' );
 		$client->method( 'getAccessTokenPayload' )->willReturn( [] );
 		$client->method( 'getIdTokenPayload' )->willReturn( [] );
 		return $client;

@@ -151,6 +151,7 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 	const OIDC_SUBJECT_SESSION_KEY = 'OpenIDConnectSubject';
 	const OIDC_ISSUER_SESSION_KEY = 'OpenIDConnectIssuer';
 	const OIDC_ACCESSTOKEN_SESSION_KEY = 'OpenIDConnectAccessToken';
+	const OIDC_ACCESSTOKENFULL_SESSION_KEY = 'OpenIDConnectFullAccessToken';
 	const OIDC_IDTOKEN_SESSION_KEY = 'OpenIDConnectIdToken';
 	const OIDC_IDTOKENPAYLOAD_SESSION_KEY = 'OpenIDConnectIdTokenPayload';
 	const OIDC_REFRESHTOKEN_SESSION_KEY = 'OpenIDConnectRefreshToken';
@@ -360,6 +361,10 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 				$accessTokenPayload = (array)$this->openIDConnectClient->getAccessTokenPayload();
 				$idTokenPayload = (array)$this->openIDConnectClient->getIdTokenPayload();
 				$attributes = array_merge( $idTokenPayload ?: [], $accessTokenPayload ?: [] );
+				$this->setSessionSecret(
+					self::OIDC_ACCESSTOKENFULL_SESSION_KEY,
+					$this->openIDConnectClient->getAccessToken()
+				);
 				$this->setSessionSecret(
 					self::OIDC_ACCESSTOKEN_SESSION_KEY,
 					$accessTokenPayload
@@ -606,10 +611,29 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 	 */
 	public function getAccessToken(): ?array {
 		$accessToken = $this->getSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY );
-		if ( $accessToken && isset( $accessToken['exp'] ) && ( gettype( $accessToken['exp'] ) === 'integer' ) &&
-			( $accessToken['exp'] >= time() - 300 ) ) {
+		if ( $this->checkAccessTokenExp( $accessToken ) ) {
 			return $accessToken;
 		}
+		return $this->refreshAccessToken();
+	}
+
+	public function getAccessTokenFull(): ?string {
+		$accessTokenFull = $this->getSessionSecret( self::OIDC_ACCESSTOKENFULL_SESSION_KEY );
+		$accessToken = $this->getSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY );
+		if ( $this->checkAccessTokenExp( $accessToken ) ) {
+			return $accessTokenFull;
+		}
+		return $this->refreshAccessToken( false );
+	}
+
+	private function checkAccessTokenExp( mixed $accessToken ): bool {
+		return $accessToken
+			&& isset( $accessToken['exp'] )
+			&& ( gettype( $accessToken['exp'] ) === 'integer' )
+			&& ( $accessToken['exp'] >= time() - 300 );
+	}
+
+	private function refreshAccessToken( bool $returnPayload = true ): ?string {
 		$refreshToken = $this->getSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY );
 		if ( $refreshToken ) {
 			$json = $this->openIDConnectClient->refreshToken( $refreshToken );
@@ -617,8 +641,10 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 				$this->setSessionSecret( self::OIDC_REFRESHTOKEN_SESSION_KEY, $json->refresh_token );
 			}
 			$accessToken = (array)$this->openIDConnectClient->getAccessTokenPayload();
+			$accessTokenFull = $this->openIDConnectClient->getAccessToken();
 			$this->setSessionSecret( self::OIDC_ACCESSTOKEN_SESSION_KEY, $accessToken );
-			return $accessToken;
+			$this->setSessionSecret( self::OIDC_ACCESSTOKENFULL_SESSION_KEY, $accessTokenFull );
+			return $returnPayload ? $accessToken : $accessTokenFull;
 		}
 		return null;
 	}
