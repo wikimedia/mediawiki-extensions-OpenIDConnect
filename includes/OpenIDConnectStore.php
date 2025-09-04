@@ -24,15 +24,9 @@ namespace MediaWiki\Extension\OpenIDConnect;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class OpenIDConnectStore {
-	/**
-	 * @var ILoadBalancer
-	 */
-	private $loadBalancer;
-
 	public function __construct(
-		ILoadBalancer $loadBalancer
+		private readonly ILoadBalancer $loadBalancer,
 	) {
-		$this->loadBalancer = $loadBalancer;
 	}
 
 	/**

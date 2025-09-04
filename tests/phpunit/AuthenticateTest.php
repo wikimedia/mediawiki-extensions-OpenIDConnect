@@ -26,7 +26,8 @@ class AuthenticateTest extends MediaWikiIntegrationTestCase {
 		$realname = null,
 		$email = null
 	) {
-		$client = $this->createNoOpMock( OpenIDConnectClient::class, [
+		// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+		$client = @$this->createNoOpMock( OpenIDConnectClient::class, [
 			'setProviderURL',
 			'setIssuer',
 			'setClientID',

@@ -44,51 +44,6 @@ use Wikimedia\UUID\GlobalIdGenerator;
 class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugin {
 
 	/**
-	 * @var Config
-	 */
-	private $mainConfig;
-
-	/**
-	 * @var AuthManager
-	 */
-	private $authManager;
-
-	/**
-	 * @var OpenIDConnectClient
-	 */
-	private $openIDConnectClient;
-
-	/**
-	 * @var UserIdentityLookup
-	 */
-	private $userIdentityLookup;
-
-	/**
-	 * @var UserNameUtils
-	 */
-	private $userNameUtils;
-
-	/**
-	 * @var OpenIDConnectStore
-	 */
-	private $openIDConnectStore;
-
-	/**
-	 * @var TitleFactory
-	 */
-	private $titleFactory;
-
-	/**
-	 * @var GlobalIdGenerator
-	 */
-	private $globalIdGenerator;
-
-	/**
-	 * @var UserFactory
-	 */
-	private $userFactory;
-
-	/**
 	 * @var bool
 	 */
 	private $migrateUsersByEmail;
@@ -156,37 +111,17 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 	const OIDC_IDTOKENPAYLOAD_SESSION_KEY = 'OpenIDConnectIdTokenPayload';
 	const OIDC_REFRESHTOKEN_SESSION_KEY = 'OpenIDConnectRefreshToken';
 
-	/**
-	 * @param Config $mainConfig
-	 * @param AuthManager $authManager
-	 * @param OpenIDConnectClient $openIDConnectClient
-	 * @param UserIdentityLookup $userIdentityLookup
-	 * @param UserNameUtils $userNameUtils
-	 * @param OpenIDConnectStore $openIDConnectStore
-	 * @param TitleFactory $titleFactory
-	 * @param GlobalIdGenerator $globalIdGenerator
-	 * @param UserFactory $userFactory
-	 */
 	public function __construct(
-		Config $mainConfig,
-		AuthManager $authManager,
-		OpenIDConnectClient $openIDConnectClient,
-		UserIdentityLookup $userIdentityLookup,
-		UserNameUtils $userNameUtils,
-		OpenIDConnectStore $openIDConnectStore,
-		TitleFactory $titleFactory,
-		GlobalIdGenerator $globalIdGenerator,
-		UserFactory $userFactory
+		private readonly Config $mainConfig,
+		private readonly AuthManager $authManager,
+		private readonly OpenIDConnectClient $openIDConnectClient,
+		private readonly UserIdentityLookup $userIdentityLookup,
+		private readonly UserNameUtils $userNameUtils,
+		private readonly OpenIDConnectStore $openIDConnectStore,
+		private readonly TitleFactory $titleFactory,
+		private readonly GlobalIdGenerator $globalIdGenerator,
+		private readonly UserFactory $userFactory,
 	) {
-		$this->mainConfig = $mainConfig;
-		$this->authManager = $authManager;
-		$this->openIDConnectClient = $openIDConnectClient;
-		$this->userIdentityLookup = $userIdentityLookup;
-		$this->userNameUtils = $userNameUtils;
-		$this->openIDConnectStore = $openIDConnectStore;
-		$this->titleFactory = $titleFactory;
-		$this->globalIdGenerator = $globalIdGenerator;
-		$this->userFactory = $userFactory;
 	}
 
 	/**
