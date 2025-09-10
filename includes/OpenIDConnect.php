@@ -330,7 +330,6 @@ class OpenIDConnect extends PluggableAuth implements BackchannelLogoutAwarePlugi
 	 * @param string|null &$errorMessage Returns a descriptive message if there's an error
 	 * @return bool true if the user has been authenticated and false otherwise
 	 * @since 1.0
-	 *
 	 */
 	public function authenticate(
 		?int &$id,
