@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Moonborn"
+		]
+	},
+	"openidconnect-desc": "OpenID Connect технологиясын PluggableAuth-пен бірге пайдаланып, аутентификацияны қамтамасыз етеді",
+	"selectopenidconnectissuer": "Аутентификация көзін таңдаңыз"
+}
