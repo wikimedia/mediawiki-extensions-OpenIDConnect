@@ -1,5 +1,3 @@
-'use strict';
-
 class Keycloak {
 
 	get usernameField() {
@@ -41,4 +39,4 @@ class Keycloak {
 	}
 }
 
-module.exports = new Keycloak();
+export default new Keycloak();

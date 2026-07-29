@@ -3,6 +3,9 @@
 	"extends": [
 		"wikimedia/selenium"
 	],
+	"parserOptions": {
+		"sourceType": "module"
+	},
 	"env": {
 		"browser": true
 	}

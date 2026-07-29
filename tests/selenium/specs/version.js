@@ -1,6 +1,4 @@
-'use strict';
-
-const VersionPage = require( '../pageobjects/version.page' );
+import VersionPage from '../pageobjects/version.page.js';
 
 describe( 'OpenIDConnect', () => {
 

@@ -1,7 +1,5 @@
-'use strict';
-
-const MainPage = require( '../pageobjects/main.page' );
-const Keycloak = require( '../pageobjects/keycloak' );
+import MainPage from '../pageobjects/main.page.js';
+import Keycloak from '../pageobjects/keycloak.js';
 
 describe( 'OpenIDConnect', () => {
 
