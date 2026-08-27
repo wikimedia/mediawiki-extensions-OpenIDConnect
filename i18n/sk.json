@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Wizzard"
+		]
+	},
+	"openidconnect-desc": "Poskytuje overovanie pomocou OpenID Connect v spojení s rozšírením PluggableAuth",
+	"selectopenidconnectissuer": "Vyberte vydavateľa overenia"
+}
