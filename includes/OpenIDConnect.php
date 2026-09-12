@@ -21,10 +21,10 @@
 
 namespace MediaWiki\Extension\OpenIDConnect;
 
-use Config;
 use Exception;
 use Jumbojett\OpenIDConnectClient;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\Config\Config;
 use MediaWiki\Extension\PluggableAuth\BackchannelLogoutAwarePlugin;
 use MediaWiki\Extension\PluggableAuth\PluggableAuth;
 use MediaWiki\Rest\RequestInterface;
@@ -32,12 +32,12 @@ use MediaWiki\Rest\ResponseInterface;
 use MediaWiki\Rest\StringStream;
 use MediaWiki\Session\SessionManager;
 use MediaWiki\Session\SessionManagerInterface;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\TitleFactory;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use MediaWiki\User\UserNameUtils;
-use SpecialPage;
-use TitleFactory;
 use Wikimedia\Assert\Assert;
 use Wikimedia\UUID\GlobalIdGenerator;
 
